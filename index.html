@@ -55,7 +55,7 @@
             </div>
         </div>
         <footer class="text-center text-gray-500 mt-4 text-sm">
-            <p>V3.1 (batch upload fixed) - 此工具直接在您的瀏覽器中處理資料，不會將您的金鑰或資料傳送到第三方伺服器。</p>
+            <p>V3.3 (floor level fix) - 此工具直接在您的瀏覽器中處理資料，不會將您的金鑰或資料傳送到第三方伺服器。</p>
         </footer>
     </div>
 
@@ -158,10 +158,34 @@
             }
         });
 
-        if(newRecord.total_floors && typeof newRecord.total_floors === 'string') {
-            const floorStr = newRecord.total_floors.replace('層', '');
+        if(newRecord.total_floors !== undefined && newRecord.total_floors !== null) {
+            const floorStr = String(newRecord.total_floors).replace('層', '');
             const floorMap = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10, '十一':11, '十二':12, '十三':13, '十四':14, '十五':15 };
-            newRecord.total_floors = floorMap[floorStr] || (isNaN(parseInt(floorStr)) ? null : parseInt(floorStr));
+            newRecord.total_floors = floorMap[floorStr] || (floorStr.trim() === '' || isNaN(parseInt(floorStr)) ? null : parseInt(floorStr));
+        }
+        
+        // ** FIX: Convert Chinese numerals in 'floor_level' to Arabic numerals **
+        if (newRecord.floor_level && typeof newRecord.floor_level === 'string') {
+            let level = newRecord.floor_level.trim();
+            // Only process if it's not '全'
+            if (level !== '全') {
+                const floorCharMap = {
+                    '一層': '1', '二層': '2', '三層': '3', '四層': '4', '五層': '5',
+                    '六層': '6', '七層': '7', '八層': '8', '九層': '9', '十層': '10',
+                    '十一層': '11', '十二層': '12', '十三層': '13', '十四層': '14', '十五層': '15',
+                    '十六層': '16', '十七層': '17', '十八層': '18', '十九層': '19', '二十層': '20'
+                    // Can be extended as needed
+                };
+                
+                // Handle comma-separated values like "三層,四層"
+                const parts = level.split(/,|，/); // Split by English or Chinese comma
+                const newParts = parts.map(part => {
+                    const trimmedPart = part.trim();
+                    return floorCharMap[trimmedPart] || trimmedPart; // If found in map, replace, otherwise keep original
+                });
+                
+                newRecord.floor_level = newParts.join(',');
+            }
         }
         
         return newRecord;
@@ -181,7 +205,6 @@
         const supabaseClient = supabase.createClient(url, key);
         log('Supabase 客戶端初始化成功。', 'success');
 
-        // ** FIX: Define chunk size for batch uploads **
         const CHUNK_SIZE = 500; 
 
         for (const file of files) {
@@ -222,7 +245,6 @@
                     continue;
                 }
 
-                // ** FIX: Implement batch processing for large uploads **
                 log(`總共 ${cleanedRecords.length} 筆紀錄，將以每批 ${CHUNK_SIZE} 筆的方式上傳。`, 'info');
 
                 if (data_type === 'main') {
