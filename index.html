@@ -55,7 +55,7 @@
             </div>
         </div>
         <footer class="text-center text-gray-500 mt-4 text-sm">
-            <p>V3.3 (floor level fix) - 此工具直接在您的瀏覽器中處理資料，不會將您的金鑰或資料傳送到第三方伺服器。</p>
+            <p>V3.4 (robust cleaning) - 此工具直接在您的瀏覽器中處理資料，不會將您的金鑰或資料傳送到第三方伺服器。</p>
         </footer>
     </div>
 
@@ -119,76 +119,80 @@
         return { city_code: city_code.toUpperCase(), trans_type, data_type: data_type_raw || 'main' };
     }
     
+    // ** FIX: Complete rewrite of cleanRecord for robustness **
     function cleanRecord(record, city_code, source_file) {
-        let newRecord = { city_code, source_file };
-        for (const key in record) {
-            const newKey = columnMapping[key.trim()] || key.trim();
-            newRecord[newKey] = record[key];
+        // Step 1: Map CSV headers to DB column names based on columnMapping.
+        // This ensures only known columns are processed and prevents schema errors.
+        const mappedRecord = { city_code, source_file };
+        for (const originalKey in record) {
+            const newKey = columnMapping[originalKey.trim()];
+            if (newKey) {
+                // If the key is mapped, add it to our new record.
+                // This handles '編號' and '移轉編號' both mapping to 'serial_number'.
+                // The last one in the file wins if both exist, which is acceptable.
+                mappedRecord[newKey] = record[originalKey];
+            }
+            // Unmapped columns are automatically ignored.
         }
 
+        // Step 2: Clean and format the data in the new, mapped record.
         ['transaction_date', 'completion_date'].forEach(dateKey => {
-            if (newRecord[dateKey] && typeof newRecord[dateKey] === 'string') {
-                const dateStr = newRecord[dateKey].trim();
+            if (mappedRecord[dateKey] && typeof mappedRecord[dateKey] === 'string') {
+                const dateStr = mappedRecord[dateKey].trim();
                 if (dateStr.length === 7 && !isNaN(dateStr)) {
                     const year = parseInt(dateStr.substring(0, 3), 10) + 1911;
                     const month = dateStr.substring(3, 5);
                     const day = dateStr.substring(5, 7);
-                    newRecord[dateKey] = `${year}-${month}-${day}`;
+                    mappedRecord[dateKey] = `${year}-${month}-${day}`;
                 } else if ((dateStr.length === 5 || dateStr.length === 6) && !isNaN(dateStr)) {
                      const year = parseInt(dateStr.substring(0, 3), 10) + 1911;
                      const month = dateStr.substring(3, 5);
-                     newRecord[dateKey] = `${year}-${month}`;
+                     mappedRecord[dateKey] = `${year}-${month}`;
                 }
-            } else if (newRecord[dateKey] && typeof newRecord[dateKey] === 'number') {
-                 const dateStr = String(newRecord[dateKey]);
+            } else if (mappedRecord[dateKey] && typeof mappedRecord[dateKey] === 'number') {
+                 const dateStr = String(mappedRecord[dateKey]);
                  if (dateStr.length === 7) {
                     const year = parseInt(dateStr.substring(0, 3), 10) + 1911;
                     const month = dateStr.substring(3, 5);
                     const day = dateStr.substring(5, 7);
-                    newRecord[dateKey] = `${year}-${month}-${day}`;
+                    mappedRecord[dateKey] = `${year}-${month}-${day}`;
                  }
             }
         });
         
         const numericKeys = ['total_price', 'unit_price', 'land_area', 'building_area', 'room_count', 'hall_count', 'bathroom_count', 'parking_area', 'parking_price', 'main_building_area', 'auxiliary_building_area', 'balcony_area', 'monthly_rent', 'monthly_parking_rent'];
         numericKeys.forEach(numKey => {
-             if (newRecord[numKey] !== undefined && newRecord[numKey] !== null) {
-                const val = String(newRecord[numKey]).replace(/,/g, '');
-                newRecord[numKey] = (val.trim() === '' || isNaN(parseFloat(val))) ? null : parseFloat(val);
+             if (mappedRecord[numKey] !== undefined && mappedRecord[numKey] !== null) {
+                const val = String(mappedRecord[numKey]).replace(/,/g, '');
+                mappedRecord[numKey] = (val.trim() === '' || isNaN(parseFloat(val))) ? null : parseFloat(val);
             }
         });
 
-        if(newRecord.total_floors !== undefined && newRecord.total_floors !== null) {
-            const floorStr = String(newRecord.total_floors).replace('層', '');
+        if(mappedRecord.total_floors !== undefined && mappedRecord.total_floors !== null) {
+            const floorStr = String(mappedRecord.total_floors).replace('層', '');
             const floorMap = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10, '十一':11, '十二':12, '十三':13, '十四':14, '十五':15 };
-            newRecord.total_floors = floorMap[floorStr] || (floorStr.trim() === '' || isNaN(parseInt(floorStr)) ? null : parseInt(floorStr));
+            mappedRecord.total_floors = floorMap[floorStr] || (floorStr.trim() === '' || isNaN(parseInt(floorStr)) ? null : parseInt(floorStr));
         }
         
-        // ** FIX: Convert Chinese numerals in 'floor_level' to Arabic numerals **
-        if (newRecord.floor_level && typeof newRecord.floor_level === 'string') {
-            let level = newRecord.floor_level.trim();
-            // Only process if it's not '全'
+        if (mappedRecord.floor_level && typeof mappedRecord.floor_level === 'string') {
+            let level = mappedRecord.floor_level.trim();
             if (level !== '全') {
                 const floorCharMap = {
                     '一層': '1', '二層': '2', '三層': '3', '四層': '4', '五層': '5',
                     '六層': '6', '七層': '7', '八層': '8', '九層': '9', '十層': '10',
                     '十一層': '11', '十二層': '12', '十三層': '13', '十四層': '14', '十五層': '15',
                     '十六層': '16', '十七層': '17', '十八層': '18', '十九層': '19', '二十層': '20'
-                    // Can be extended as needed
                 };
-                
-                // Handle comma-separated values like "三層,四層"
-                const parts = level.split(/,|，/); // Split by English or Chinese comma
+                const parts = level.split(/,|，/);
                 const newParts = parts.map(part => {
                     const trimmedPart = part.trim();
-                    return floorCharMap[trimmedPart] || trimmedPart; // If found in map, replace, otherwise keep original
+                    return floorCharMap[trimmedPart] || trimmedPart;
                 });
-                
-                newRecord.floor_level = newParts.join(',');
+                mappedRecord.floor_level = newParts.join(',');
             }
         }
         
-        return newRecord;
+        return mappedRecord;
     }
 
     async function startUpload() {
