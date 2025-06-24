@@ -55,7 +55,7 @@
             </div>
         </div>
         <footer class="text-center text-gray-500 mt-4 text-sm">
-            <p>V3.4 (robust cleaning) - 此工具直接在您的瀏覽器中處理資料，不會將您的金鑰或資料傳送到第三方伺服器。</p>
+            <p>V3.5 (deduplication fix) - 此工具直接在您的瀏覽器中處理資料，不會將您的金鑰或資料傳送到第三方伺服器。</p>
         </footer>
     </div>
 
@@ -119,23 +119,15 @@
         return { city_code: city_code.toUpperCase(), trans_type, data_type: data_type_raw || 'main' };
     }
     
-    // ** FIX: Complete rewrite of cleanRecord for robustness **
     function cleanRecord(record, city_code, source_file) {
-        // Step 1: Map CSV headers to DB column names based on columnMapping.
-        // This ensures only known columns are processed and prevents schema errors.
         const mappedRecord = { city_code, source_file };
         for (const originalKey in record) {
             const newKey = columnMapping[originalKey.trim()];
             if (newKey) {
-                // If the key is mapped, add it to our new record.
-                // This handles '編號' and '移轉編號' both mapping to 'serial_number'.
-                // The last one in the file wins if both exist, which is acceptable.
                 mappedRecord[newKey] = record[originalKey];
             }
-            // Unmapped columns are automatically ignored.
         }
 
-        // Step 2: Clean and format the data in the new, mapped record.
         ['transaction_date', 'completion_date'].forEach(dateKey => {
             if (mappedRecord[dateKey] && typeof mappedRecord[dateKey] === 'string') {
                 const dateStr = mappedRecord[dateKey].trim();
@@ -248,19 +240,33 @@
                     log('檔案中無有效資料可上傳。', 'warning');
                     continue;
                 }
+                
+                // ** FIX: De-duplicate records before uploading to prevent "cannot affect row a second time" error **
+                const uniqueRecordsMap = new Map();
+                cleanedRecords.forEach(record => {
+                    if (record.serial_number) {
+                        uniqueRecordsMap.set(record.serial_number, record);
+                    }
+                });
+                const uniqueCleanedRecords = Array.from(uniqueRecordsMap.values());
 
-                log(`總共 ${cleanedRecords.length} 筆紀錄，將以每批 ${CHUNK_SIZE} 筆的方式上傳。`, 'info');
+                if (uniqueCleanedRecords.length < cleanedRecords.length) {
+                    log(`偵測到並移除了 ${cleanedRecords.length - uniqueCleanedRecords.length} 筆重複的交易紀錄。`, 'warning');
+                }
+
+
+                log(`總共 ${uniqueCleanedRecords.length} 筆不重複的紀錄，將以每批 ${CHUNK_SIZE} 筆的方式上傳。`, 'info');
 
                 if (data_type === 'main') {
-                    for (let i = 0; i < cleanedRecords.length; i += CHUNK_SIZE) {
-                        const chunk = cleanedRecords.slice(i, i + CHUNK_SIZE);
+                    for (let i = 0; i < uniqueCleanedRecords.length; i += CHUNK_SIZE) {
+                        const chunk = uniqueCleanedRecords.slice(i, i + CHUNK_SIZE);
                         log(`正在上傳主表資料，第 ${i + 1} - ${i + chunk.length} 筆...`, 'info');
                         const { error } = await supabaseClient.from(target_table).upsert(chunk, { onConflict: 'serial_number' });
                         if (error) throw error;
                     }
                     log(`主表資料上傳成功！`, 'success');
                 } else {
-                    const transaction_ids = [...new Set(cleanedRecords.map(r => r.transaction_id))].filter(Boolean);
+                    const transaction_ids = [...new Set(uniqueCleanedRecords.map(r => r.transaction_id))].filter(Boolean);
                     if (transaction_ids.length > 0) {
                         log(`執行[先刪後插]：刪除 ${transaction_ids.length} 個相關交易紀錄...`, 'info');
                         const { error: deleteError } = await supabaseClient.from(target_table).delete().in('transaction_id', transaction_ids);
@@ -268,8 +274,8 @@
                         log(`舊資料刪除成功，準備插入新資料...`, 'success');
                     }
                     
-                    for (let i = 0; i < cleanedRecords.length; i += CHUNK_SIZE) {
-                        const chunk = cleanedRecords.slice(i, i + CHUNK_SIZE);
+                    for (let i = 0; i < uniqueCleanedRecords.length; i += CHUNK_SIZE) {
+                        const chunk = uniqueCleanedRecords.slice(i, i + CHUNK_SIZE);
                         log(`正在上傳附表資料，第 ${i + 1} - ${i + chunk.length} 筆...`, 'info');
                         const { error: insertError } = await supabaseClient.from(target_table).insert(chunk);
                         if (insertError) throw insertError;
