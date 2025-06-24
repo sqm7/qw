@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase 連線測試</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #45a049; }
+        .log { background: #f0f0f0; padding: 10px; border-radius: 4px; margin-top: 20px; white-space: pre-wrap; }
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Supabase 連線測試工具</h1>
+    
+    <div class="input-group">
+        <label>Supabase URL:</label>
+        <input type="text" id="url" placeholder="https://your-project.supabase.co">
+    </div>
+    
+    <div class="input-group">
+        <label>Service Role Key:</label>
+        <input type="password" id="key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+    </div>
+    
+    <button onclick="testConnection()">測試連線</button>
+    
+    <div class="log" id="log"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `<span class="${type}">[${time}] ${message}</span>\n`;
+        }
+
+        async function testConnection() {
+            const url = document.getElementById('url').value.trim();
+            const key = document.getElementById('key').value.trim();
+            
+            if (!url || !key) {
+                log('請填入 URL 和 Key', 'error');
+                return;
+            }
+
+            log('開始測試連線...', 'info');
+
+            try {
+                // 測試基本連線
+                log('測試 API 端點...', 'info');
+                const testUrl = url + '/rest/v1/';
+                const response = await fetch(testUrl, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': key,
+                        'Authorization': 'Bearer ' + key
+                    }
+                });
+
+                log(`HTTP 狀態碼: ${response.status}`, 'info');
+
+                if (response.status === 200) {
+                    log('API 端點可達 ✓', 'success');
+                } else if (response.status === 401) {
+                    log('認證失敗 - 請檢查 API Key', 'error');
+                    return;
+                } else if (response.status === 404) {
+                    log('URL 錯誤 - 請檢查 URL 格式', 'error');
+                    return;
+                }
+
+                // 測試資料表存取
+                const tables = ['a_transactions', 'b_transactions', 'c_transactions'];
+                log('測試資料表存取...', 'info');
+
+                for (const table of tables) {
+                    try {
+                        const tableUrl = `${url}/rest/v1/${table}?select=*&limit=1`;
+                        const tableResponse = await fetch(tableUrl, {
+                            method: 'GET',
+                            headers: {
+                                'apikey': key,
+                                'Authorization': 'Bearer ' + key,
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        if (tableResponse.ok) {
+                            const countHeader = tableResponse.headers.get('content-range');
+                            const count = countHeader ? countHeader.split('/')[1] : '未知';
+                            log(`✓ ${table}: 可存取，共 ${count} 筆資料`, 'success');
+                        } else {
+                            const error = await tableResponse.text();
+                            log(`✗ ${table}: ${tableResponse.status} - ${error}`, 'error');
+                        }
+                    } catch (err) {
+                        log(`✗ ${table}: ${err.message}`, 'error');
+                    }
+                }
+
+                log('測試完成！', 'info');
+
+            } catch (error) {
+                log(`連線錯誤: ${error.message}`, 'error');
+                if (error.message.includes('Failed to fetch')) {
+                    log('可能的原因：', 'info');
+                    log('1. CORS 問題 - 請使用 HTTP server 而非直接開啟檔案', 'info');
+                    log('2. 網路問題 - 請檢查網路連線', 'info');
+                    log('3. URL 錯誤 - 請確認 URL 格式正確', 'info');
+                }
+            }
+        }
+
+        // 自動填入範例
+        window.onload = function() {
+            log('請填入您的 Supabase 連線資訊並點擊測試連線', 'info');
+            log('提示：確保使用 Service Role Key (在 Settings > API 中找到)', 'info');
+        };
+    </script>
+</body>
+</html>
