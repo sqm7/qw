@@ -3,127 +3,305 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supabase 連線測試</title>
+    <title>Supabase 不動產資料上傳工具</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        .input-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-        button { background: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #45a049; }
-        .log { background: #f0f0f0; padding: 10px; border-radius: 4px; margin-top: 20px; white-space: pre-wrap; }
-        .error { color: red; }
-        .success { color: green; }
-        .info { color: blue; }
+        /* Custom scrollbar for log */
+        #log::-webkit-scrollbar { width: 8px; }
+        #log::-webkit-scrollbar-track { background: #f1f1f1; }
+        #log::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        #log::-webkit-scrollbar-thumb:hover { background: #555; }
     </style>
 </head>
-<body>
-    <h1>Supabase 連線測試工具</h1>
-    
-    <div class="input-group">
-        <label>Supabase URL:</label>
-        <input type="text" id="url" placeholder="https://your-project.supabase.co">
-    </div>
-    
-    <div class="input-group">
-        <label>Service Role Key:</label>
-        <input type="password" id="key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
-    </div>
-    
-    <button onclick="testConnection()">測試連線</button>
-    
-    <div class="log" id="log"></div>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-4 md:p-8">
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <h1 class="text-2xl font-bold mb-2 text-gray-800">Supabase 不動產資料上傳工具</h1>
+            <p class="text-gray-600 mb-6">請填寫您的 Supabase 資訊，並選擇要上傳的實價登錄 CSV 檔案。</p>
 
-    <script>
-        function log(message, type = 'info') {
-            const logDiv = document.getElementById('log');
-            const time = new Date().toLocaleTimeString();
-            logDiv.innerHTML += `<span class="${type}">[${time}] ${message}</span>\n`;
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div class="input-group">
+                    <label for="url" class="block mb-2 text-sm font-medium text-gray-700">Supabase URL:</label>
+                    <input type="text" id="url" placeholder="https://your-project-ref.supabase.co" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                </div>
+                <div class="input-group">
+                    <label for="key" class="block mb-2 text-sm font-medium text-gray-700">Service Role Key:</label>
+                    <input type="password" id="key" placeholder="您的 service_role key" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label for="csvFiles" class="block mb-2 text-sm font-medium text-gray-700">選擇 CSV 檔案:</label>
+                <input type="file" id="csvFiles" multiple accept=".csv" class="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer focus:outline-none">
+            </div>
+
+            <button onclick="startUpload()" id="uploadButton" class="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-colors">
+                開始上傳
+            </button>
+            
+            <div id="log-container" class="mt-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-2">上傳日誌:</h2>
+                <div id="log" class="bg-gray-800 text-white font-mono text-sm p-4 rounded-lg h-64 overflow-y-auto"></div>
+            </div>
+        </div>
+        <footer class="text-center text-gray-500 mt-4 text-sm">
+            <p>V2.3 (fixed) - 此工具直接在您的瀏覽器中處理資料，不會將您的金鑰或資料傳送到第三方伺服器。</p>
+        </footer>
+    </div>
+
+<script>
+    // 中文欄位到資料庫英文欄位的映射表
+    const columnMapping = {
+        '鄉鎮市區': 'district',
+        '交易標的': 'transaction_target',
+        '土地位置建物門牌': 'address',
+        '土地移轉總面積平方公尺': 'land_area',
+        '都市土地使用分區': 'zoning',
+        '非都市土地使用分區': 'non_metropolis_land_use',
+        '非都市土地使用編定': 'non_metropolis_land_category',
+        '交易年月日': 'transaction_date',
+        '交易筆棟數': 'transaction_count_str',
+        '移轉層次': 'floor_level',
+        '總樓層數': 'total_floors',
+        '建物型態': 'building_type',
+        '主要用途': 'main_use',
+        '主要建材': 'main_materials',
+        '建築完成年月': 'completion_date',
+        '建物移轉總面積平方公尺': 'building_area',
+        '建物現況格局-房': 'room_count',
+        '建物現況格局-廳': 'hall_count',
+        '建物現況格局-衛': 'bathroom_count',
+        '建物現況格局-隔間': 'compartment',
+        '有無管理組織': 'management_org',
+        '總價元': 'total_price',
+        '單價元平方公尺': 'unit_price',
+        '車位類別': 'parking_type',
+        '車位移轉總面積平方公尺': 'parking_area',
+        '車位總價元': 'parking_price',
+        '備註': 'noted_detail',
+        '編號': 'serial_number',
+        '主建物面積': 'main_building_area',
+        '附屬建物面積': 'auxiliary_building_area',
+        '陽台面積': 'balcony_area',
+        '電梯': 'elevator',
+        // 預售屋特有
+        '建案名稱': 'building_name',
+        '起造人': 'developer',
+        '設計人': 'architect',
+        '監造人': 'constructor',
+        // 租賃特有
+        '租賃年月日': 'transaction_date',
+        '租賃筆棟數': 'transaction_count_str',
+        '租賃層次': 'floor_level',
+        '月租金元': 'monthly_rent',
+        '押金': 'security_deposit',
+        '租期': 'rental_term',
+        '含家具': 'has_furniture',
+        '含設備': 'has_appliance',
+        '含管理費': 'has_management_fee',
+        '含網路': 'has_network',
+        '含車位': 'has_parking',
+        '車位月租金元': 'monthly_parking_rent',
+        // 附表共用
+        '交易標的 Grundstücksnummer': 'land_number',
+        '都市土地使用分區 Nutzung': 'land_use_zoning',
+        '非都市土地使用編定 Nutzung': 'land_use_type',
+        '移轉面積㎡': 'transfer_land_area',
+        '持分': 'land_proportion_share',
+        '交易編號': 'transaction_id' // 附表用
+    };
+    
+    // 日誌記錄
+    function log(message, type = 'info') {
+        const logDiv = document.getElementById('log');
+        const time = new Date().toLocaleTimeString();
+        const colorClass = {
+            info: 'text-blue-300',
+            success: 'text-green-400',
+            error: 'text-red-400',
+            warning: 'text-yellow-400'
+        }[type];
+        logDiv.innerHTML += `<div class="${colorClass}"><span class="text-gray-400">[${time}]</span> ${message}</div>`;
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    // 解析檔名
+    function parseFilename(filename) {
+        const match = filename.match(/([A-Z])_lvr_land_([abc])(?:_(\w+))?\.csv/i);
+        if (!match) return null;
+        const [_, city_code, trans_type, data_type_raw] = match;
+        const data_type = data_type_raw || 'main';
+        return { city_code: city_code.toUpperCase(), trans_type, data_type };
+    }
+    
+    // 清理和轉換單筆紀錄
+    function cleanRecord(record, city_code, source_file) {
+        let newRecord = { city_code, source_file };
+        for (const key in record) {
+            const newKey = columnMapping[key.trim()] || key.trim();
+            newRecord[newKey] = record[key];
         }
 
-        async function testConnection() {
-            const url = document.getElementById('url').value.trim();
-            const key = document.getElementById('key').value.trim();
-            
-            if (!url || !key) {
-                log('請填入 URL 和 Key', 'error');
-                return;
+        // --- 資料清理 ---
+        // 日期轉換 (民國轉西元)
+        ['transaction_date', 'completion_date'].forEach(dateKey => {
+            if (newRecord[dateKey] && typeof newRecord[dateKey] === 'string') {
+                const dateStr = newRecord[dateKey].trim();
+                if (dateStr.length === 7 && !isNaN(dateStr)) {
+                    const year = parseInt(dateStr.substring(0, 3), 10) + 1911;
+                    const month = dateStr.substring(3, 5);
+                    const day = dateStr.substring(5, 7);
+                    newRecord[dateKey] = `${year}-${month}-${day}`;
+                } else if (dateStr.length === 5 || dateStr.length === 6 && !isNaN(dateStr)) {
+                     const year = parseInt(dateStr.substring(0, 3), 10) + 1911;
+                     const month = dateStr.substring(3, 5);
+                     newRecord[dateKey] = `${year}-${month}`;
+                }
+            } else if (newRecord[dateKey] && typeof newRecord[dateKey] === 'number') {
+                 const dateStr = String(newRecord[dateKey]);
+                 if (dateStr.length === 7) {
+                    const year = parseInt(dateStr.substring(0, 3), 10) + 1911;
+                    const month = dateStr.substring(3, 5);
+                    const day = dateStr.substring(5, 7);
+                    newRecord[dateKey] = `${year}-${month}-${day}`;
+                 }
+            }
+        });
+        
+        // 數字轉換
+        const numericKeys = ['total_price', 'unit_price', 'land_area', 'building_area', 'room_count', 'hall_count', 'bathroom_count', 'parking_area', 'parking_price', 'main_building_area', 'auxiliary_building_area', 'balcony_area', 'monthly_rent', 'monthly_parking_rent'];
+        numericKeys.forEach(numKey => {
+             if (newRecord[numKey] !== undefined && newRecord[numKey] !== null) {
+                const val = String(newRecord[numKey]).replace(/,/g, '');
+                if (val.trim() === '') {
+                    newRecord[numKey] = null;
+                } else {
+                    newRecord[numKey] = isNaN(parseFloat(val)) ? null : parseFloat(val);
+                }
+            }
+        });
+
+        // 處理總樓層數中的中文
+        if(newRecord.total_floors && typeof newRecord.total_floors === 'string') {
+            const floorStr = newRecord.total_floors.replace('層', '');
+            const floorMap = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10, '十一':11, '十二':12, '十三':13, '十四':14, '十五':15}; // 可擴充
+            newRecord.total_floors = floorMap[floorStr] || (isNaN(parseInt(floorStr)) ? null : parseInt(floorStr));
+        }
+
+        return newRecord;
+    }
+
+    // 開始上傳主流程
+    async function startUpload() {
+        const url = document.getElementById('url').value.trim();
+        const key = document.getElementById('key').value.trim();
+        const files = document.getElementById('csvFiles').files;
+
+        if (!url || !key) {
+            log('請填入 Supabase URL 和 Service Role Key。', 'error');
+            return;
+        }
+        if (files.length === 0) {
+            log('請選擇要上傳的 CSV 檔案。', 'error');
+            return;
+        }
+        
+        document.getElementById('uploadButton').disabled = true;
+        document.getElementById('uploadButton').innerText = '上傳中...';
+        
+        // ** FIX: Initialize client in a new constant, from the global 'supabase' object **
+        const supabaseClient = supabase.createClient(url, key);
+        log('Supabase 客戶端初始化成功。', 'success');
+
+        for (const file of files) {
+            log(`-----------------------------------`, 'info');
+            log(`處理檔案: ${file.name}`, 'info');
+
+            const fileInfo = parseFilename(file.name);
+            if (!fileInfo) {
+                log(`檔名格式不符，跳過檔案: ${file.name}`, 'warning');
+                continue;
             }
 
-            log('開始測試連線...', 'info');
+            const { city_code, trans_type, data_type } = fileInfo;
+            
+            let target_table;
+            if (data_type === 'main') {
+                target_table = `${trans_type}_transactions`;
+            } else if (data_type === 'build') {
+                target_table = `${trans_type}_buildings`;
+            } else if (data_type === 'land') {
+                target_table = `${trans_type}_lands`;
+            } else if (data_type === 'park') {
+                target_table = `${trans_type}_parking`;
+            } else {
+                 log(`未知的 data_type: ${data_type}，跳過。`, 'warning');
+                 continue;
+            }
+
+            log(`目標資料表: ${target_table}`, 'info');
 
             try {
-                // 測試基本連線
-                log('測試 API 端點...', 'info');
-                const testUrl = url + '/rest/v1/';
-                const response = await fetch(testUrl, {
-                    method: 'GET',
-                    headers: {
-                        'apikey': key,
-                        'Authorization': 'Bearer ' + key
-                    }
+                const results = await new Promise((resolve, reject) => {
+                    Papa.parse(file, {
+                        header: true,
+                        skipEmptyLines: true,
+                        complete: resolve,
+                        error: reject
+                    });
                 });
-
-                log(`HTTP 狀態碼: ${response.status}`, 'info');
-
-                if (response.status === 200) {
-                    log('API 端點可達 ✓', 'success');
-                } else if (response.status === 401) {
-                    log('認證失敗 - 請檢查 API Key', 'error');
-                    return;
-                } else if (response.status === 404) {
-                    log('URL 錯誤 - 請檢查 URL 格式', 'error');
-                    return;
+                
+                if (results.errors.length > 0) {
+                     log(`CSV 解析錯誤: ${results.errors.map(e => e.message).join(', ')}`, 'error');
+                     continue;
                 }
 
-                // 測試資料表存取
-                const tables = ['a_transactions', 'b_transactions', 'c_transactions'];
-                log('測試資料表存取...', 'info');
+                const cleanedRecords = results.data.map(record => cleanRecord(record, city_code, file.name));
 
-                for (const table of tables) {
-                    try {
-                        const tableUrl = `${url}/rest/v1/${table}?select=*&limit=1`;
-                        const tableResponse = await fetch(tableUrl, {
-                            method: 'GET',
-                            headers: {
-                                'apikey': key,
-                                'Authorization': 'Bearer ' + key,
-                                'Accept': 'application/json',
-                                'Content-Type': 'application/json'
-                            }
-                        });
+                if (cleanedRecords.length === 0) {
+                    log('檔案中無有效資料可上傳。', 'warning');
+                    continue;
+                }
 
-                        if (tableResponse.ok) {
-                            const countHeader = tableResponse.headers.get('content-range');
-                            const count = countHeader ? countHeader.split('/')[1] : '未知';
-                            log(`✓ ${table}: 可存取，共 ${count} 筆資料`, 'success');
-                        } else {
-                            const error = await tableResponse.text();
-                            log(`✗ ${table}: ${tableResponse.status} - ${error}`, 'error');
-                        }
-                    } catch (err) {
-                        log(`✗ ${table}: ${err.message}`, 'error');
+                if (data_type === 'main') {
+                    // 主表：使用 upsert
+                    log(`準備上傳 ${cleanedRecords.length} 筆紀錄到主表...`, 'info');
+                    // ** FIX: Use the new supabaseClient constant **
+                    const { error } = await supabaseClient.table(target_table).upsert(cleanedRecords, { onConflict: 'serial_number' });
+                    if (error) throw error;
+                    log(`主表資料上傳成功！`, 'success');
+                } else {
+                    // 附表：先刪後插
+                    log(`準備上傳 ${cleanedRecords.length} 筆紀錄到附表...`, 'info');
+                    const transaction_ids = [...new Set(cleanedRecords.map(r => r.transaction_id))].filter(Boolean);
+                    if (transaction_ids.length > 0) {
+                        log(`執行[先刪後插]：刪除 ${transaction_ids.length} 個相關交易紀錄...`, 'info');
+                        // ** FIX: Use the new supabaseClient constant **
+                        const { error: deleteError } = await supabaseClient.table(target_table).delete().in('transaction_id', transaction_ids);
+                        if (deleteError) throw new Error(`刪除舊資料失敗: ${deleteError.message}`);
+                        log(`舊資料刪除成功，準備插入新資料...`, 'success');
                     }
+                    // ** FIX: Use the new supabaseClient constant **
+                    const { error: insertError } = await supabaseClient.table(target_table).insert(cleanedRecords);
+                    if (insertError) throw insertError;
+                    log(`附表資料上傳成功！`, 'success');
                 }
-
-                log('測試完成！', 'info');
-
             } catch (error) {
-                log(`連線錯誤: ${error.message}`, 'error');
-                if (error.message.includes('Failed to fetch')) {
-                    log('可能的原因：', 'info');
-                    log('1. CORS 問題 - 請使用 HTTP server 而非直接開啟檔案', 'info');
-                    log('2. 網路問題 - 請檢查網路連線', 'info');
-                    log('3. URL 錯誤 - 請確認 URL 格式正確', 'info');
-                }
+                log(`處理檔案 ${file.name} 時發生錯誤: ${error.message}`, 'error');
             }
         }
+        
+        log(`-----------------------------------`, 'info');
+        log('所有檔案處理完畢！', 'success');
+        document.getElementById('uploadButton').disabled = false;
+        document.getElementById('uploadButton').innerText = '開始上傳';
+    }
 
-        // 自動填入範例
-        window.onload = function() {
-            log('請填入您的 Supabase 連線資訊並點擊測試連線', 'info');
-            log('提示：確保使用 Service Role Key (在 Settings > API 中找到)', 'info');
-        };
-    </script>
+</script>
 </body>
 </html>
