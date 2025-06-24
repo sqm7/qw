@@ -36,7 +36,6 @@
             </div>
 
             <div class="mb-6">
-                <!-- FIX: Add webkitdirectory attribute to allow folder selection -->
                 <label for="csvFiles" class="block mb-2 text-sm font-medium text-gray-700">選擇資料夾 (可選多個):</label>
                 <input type="file" id="csvFiles" multiple webkitdirectory mozdirectory accept=".csv" class="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer focus:outline-none">
             </div>
@@ -56,45 +55,13 @@
             </div>
         </div>
         <footer class="text-center text-gray-500 mt-4 text-sm">
-            <p>V3.6 (folder upload & enhanced deduplication) - 此工具直接在您的瀏覽器中處理資料，不會將您的金鑰或資料傳送到第三方伺服器。</p>
+            <p>V4.1 (final logic fix) - 此工具直接在您的瀏覽器中處理資料，不會將您的金鑰或資料傳送到第三方伺服器。</p>
         </footer>
     </div>
 
 <script>
     const columnMapping = {
-        '移轉編號': 'serial_number',
-        '編號': 'serial_number',
-        '鄉鎮市區': 'district', 
-        '交易標的': 'transaction_target', 
-        '土地位置建物門牌': 'address', 
-        '土地移轉總面積平方公尺': 'land_area', 
-        '都市土地使用分區': 'zoning', 
-        '非都市土地使用分區': 'non_metropolis_land_use', 
-        '非都市土地使用編定': 'non_metropolis_land_category', 
-        '交易年月日': 'transaction_date', 
-        '交易筆棟數': 'transaction_count_str', 
-        '移轉層次': 'floor_level', 
-        '總樓層數': 'total_floors', 
-        '建物型態': 'building_type', 
-        '主要用途': 'main_use', 
-        '主要建材': 'main_materials', 
-        '建築完成年月': 'completion_date', 
-        '建物移轉總面積平方公尺': 'building_area', 
-        '建物現況格局-房': 'room_count', 
-        '建物現況格局-廳': 'hall_count', 
-        '建物現況格局-衛': 'bathroom_count', 
-        '建物現況格局-隔間': 'compartment', 
-        '有無管理組織': 'management_org', 
-        '總價元': 'total_price', 
-        '單價元平方公尺': 'unit_price', 
-        '車位類別': 'parking_type', 
-        '車位移轉總面積平方公尺': 'parking_area', 
-        '車位總價元': 'parking_price', 
-        '備註': 'noted_detail', 
-        '主建物面積': 'main_building_area', 
-        '附屬建物面積': 'auxiliary_building_area', 
-        '陽台面積': 'balcony_area', 
-        '電梯': 'elevator',
+        '移轉編號': 'serial_number', '編號': 'serial_number', '鄉鎮市區': 'district', '交易標的': 'transaction_target', '土地位置建物門牌': 'address', '土地移轉總面積平方公尺': 'land_area', '都市土地使用分區': 'zoning', '非都市土地使用分區': 'non_metropolis_land_use', '非都市土地使用編定': 'non_metropolis_land_category', '交易年月日': 'transaction_date', '交易筆棟數': 'transaction_count_str', '移轉層次': 'floor_level', '總樓層數': 'total_floors', '建物型態': 'building_type', '主要用途': 'main_use', '主要建材': 'main_materials', '建築完成年月': 'completion_date', '建物移轉總面積平方公尺': 'building_area', '建物現況格局-房': 'room_count', '建物現況格局-廳': 'hall_count', '建物現況格局-衛': 'bathroom_count', '建物現況格局-隔間': 'compartment', '有無管理組織': 'management_org', '總價元': 'total_price', '單價元平方公尺': 'unit_price', '車位類別': 'parking_type', '車位移轉總面積平方公尺': 'parking_area', '車位總價元': 'parking_price', '備註': 'noted_detail', '主建物面積': 'main_building_area', '附屬建物面積': 'auxiliary_building_area', '陽台面積': 'balcony_area', '電梯': 'elevator',
         '建案名稱': 'building_name', '起造人': 'developer', '設計人': 'architect', '監造人': 'constructor',
         '租賃年月日': 'transaction_date', '租賃筆棟數': 'transaction_count_str', '租賃層次': 'floor_level', '月租金元': 'monthly_rent', '押金': 'security_deposit', '租期': 'rental_term', '含家具': 'has_furniture', '含設備': 'has_appliance', '含管理費': 'has_management_fee', '含網路': 'has_network', '含車位': 'has_parking', '車位月租金元': 'monthly_parking_rent',
         '交易標的 Grundstücksnummer': 'land_number', '都市土地使用分區 Nutzung': 'land_use_zoning', '非都市土地使用編定 Nutzung': 'land_use_type', '移轉面積㎡': 'transfer_land_area', '持分': 'land_proportion_share', '交易編號': 'transaction_id'
@@ -120,35 +87,32 @@
         return { city_code: city_code.toUpperCase(), trans_type, data_type: data_type_raw || 'main' };
     }
     
-    function cleanRecord(record, city_code, source_file) {
-        const mappedRecord = { city_code, source_file };
+    function cleanRecord(record, city_code, source_file, data_type) {
+        const mappedRecord = {};
         for (const originalKey in record) {
             const newKey = columnMapping[originalKey.trim()];
             if (newKey) {
                 mappedRecord[newKey] = record[originalKey];
             }
         }
+        
+        if (data_type === 'main') {
+            mappedRecord.city_code = city_code;
+            mappedRecord.source_file = source_file;
+        }
 
         ['transaction_date', 'completion_date'].forEach(dateKey => {
             if (mappedRecord[dateKey] && typeof mappedRecord[dateKey] === 'string') {
                 const dateStr = mappedRecord[dateKey].trim();
                 if (dateStr.length === 7 && !isNaN(dateStr)) {
-                    const year = parseInt(dateStr.substring(0, 3), 10) + 1911;
-                    const month = dateStr.substring(3, 5);
-                    const day = dateStr.substring(5, 7);
-                    mappedRecord[dateKey] = `${year}-${month}-${day}`;
+                    mappedRecord[dateKey] = `${parseInt(dateStr.substring(0, 3), 10) + 1911}-${dateStr.substring(3, 5)}-${dateStr.substring(5, 7)}`;
                 } else if ((dateStr.length === 5 || dateStr.length === 6) && !isNaN(dateStr)) {
-                     const year = parseInt(dateStr.substring(0, 3), 10) + 1911;
-                     const month = dateStr.substring(3, 5);
-                     mappedRecord[dateKey] = `${year}-${month}`;
+                    mappedRecord[dateKey] = `${parseInt(dateStr.substring(0, 3), 10) + 1911}-${dateStr.substring(3, 5)}`;
                 }
             } else if (mappedRecord[dateKey] && typeof mappedRecord[dateKey] === 'number') {
                  const dateStr = String(mappedRecord[dateKey]);
                  if (dateStr.length === 7) {
-                    const year = parseInt(dateStr.substring(0, 3), 10) + 1911;
-                    const month = dateStr.substring(3, 5);
-                    const day = dateStr.substring(5, 7);
-                    mappedRecord[dateKey] = `${year}-${month}-${day}`;
+                    mappedRecord[dateKey] = `${parseInt(dateStr.substring(0, 3), 10) + 1911}-${dateStr.substring(3, 5)}-${dateStr.substring(5, 7)}`;
                  }
             }
         });
@@ -170,17 +134,9 @@
         if (mappedRecord.floor_level && typeof mappedRecord.floor_level === 'string') {
             let level = mappedRecord.floor_level.trim();
             if (level !== '全') {
-                const floorCharMap = {
-                    '一層': '1', '二層': '2', '三層': '3', '四層': '4', '五層': '5',
-                    '六層': '6', '七層': '7', '八層': '8', '九層': '9', '十層': '10',
-                    '十一層': '11', '十二層': '12', '十三層': '13', '十四層': '14', '十五層': '15',
-                    '十六層': '16', '十七層': '17', '十八層': '18', '十九層': '19', '二十層': '20'
-                };
+                const floorCharMap = {'一層': '1', '二層': '2', '三層': '3', '四層': '4', '五層': '5', '六層': '6', '七層': '7', '八層': '8', '九層': '9', '十層': '10', '十一層': '11', '十二層': '12', '十三層': '13', '十四層': '14', '十五層': '15', '十六層': '16', '十七層': '17', '十八層': '18', '十九層': '19', '二十層': '20'};
                 const parts = level.split(/,|，/);
-                const newParts = parts.map(part => {
-                    const trimmedPart = part.trim();
-                    return floorCharMap[trimmedPart] || trimmedPart;
-                });
+                const newParts = parts.map(part => floorCharMap[part.trim()] || part.trim());
                 mappedRecord.floor_level = newParts.join(',');
             }
         }
@@ -205,10 +161,7 @@
         const CHUNK_SIZE = 500; 
 
         for (const file of files) {
-            // Check if file is a CSV
-            if (!file.name.toLowerCase().endsWith('.csv')) {
-                continue; // Skip non-CSV files
-            }
+            if (!file.name.toLowerCase().endsWith('.csv')) continue; 
 
             log(`-----------------------------------`, 'info');
             log(`處理檔案: ${file.webkitRelativePath || file.name}`, 'info');
@@ -239,49 +192,43 @@
                      log(`CSV 解析錯誤: ${results.errors.map(e => e.message).join(', ')}`, 'error');
                      continue;
                 }
-
-                const cleanedRecords = results.data.map(record => cleanRecord(record, city_code, file.name));
+                
+                const cleanedRecords = results.data.map(record => cleanRecord(record, city_code, file.name, data_type));
 
                 if (cleanedRecords.length === 0) {
                     log('檔案中無有效資料可上傳。', 'warning');
                     continue;
                 }
                 
-                // ** FIX: De-duplicate records based on their primary key before uploading. **
-                // This prevents the "cannot affect row a second time" error for main tables
-                // and avoids redundant data in supplementary tables.
-                const uniqueRecordsMap = new Map();
-                const uniqueKey = data_type === 'main' ? 'serial_number' : 'transaction_id';
-                
-                cleanedRecords.forEach(record => {
-                    const id = record[uniqueKey];
-                    if (id) {
-                        // For supplementary tables, this will overwrite previous entries for the same transaction_id,
-                        // which is fine since we are uploading all parts of the transaction.
-                        // A more robust way for supplementary tables would be to group them, but this is simpler and effective.
-                        // For main tables, it simply de-duplicates.
-                        uniqueRecordsMap.set(id, record);
-                    }
-                });
-                const uniqueCleanedRecords = Array.from(uniqueRecordsMap.values());
+                let recordsToUpload = cleanedRecords;
 
-                if (uniqueCleanedRecords.length < cleanedRecords.length) {
-                    log(`偵測到並移除了 ${cleanedRecords.length - uniqueCleanedRecords.length} 筆重複的紀錄。`, 'warning');
+                // ** FIX: Apply de-duplication ONLY to main transaction tables **
+                if (data_type === 'main') {
+                    const uniqueRecordsMap = new Map();
+                    cleanedRecords.forEach(record => {
+                        if (record.serial_number) {
+                            uniqueRecordsMap.set(record.serial_number, record);
+                        }
+                    });
+                    recordsToUpload = Array.from(uniqueRecordsMap.values());
+
+                    if (recordsToUpload.length < cleanedRecords.length) {
+                        log(`主表偵測到並移除了 ${cleanedRecords.length - recordsToUpload.length} 筆重複的交易紀錄。`, 'warning');
+                    }
                 }
 
-
-                log(`總共 ${uniqueCleanedRecords.length} 筆不重複的紀錄，將以每批 ${CHUNK_SIZE} 筆的方式上傳。`, 'info');
+                log(`總共 ${recordsToUpload.length} 筆紀錄，將以每批 ${CHUNK_SIZE} 筆的方式上傳。`, 'info');
 
                 if (data_type === 'main') {
-                    for (let i = 0; i < uniqueCleanedRecords.length; i += CHUNK_SIZE) {
-                        const chunk = uniqueCleanedRecords.slice(i, i + CHUNK_SIZE);
+                    for (let i = 0; i < recordsToUpload.length; i += CHUNK_SIZE) {
+                        const chunk = recordsToUpload.slice(i, i + CHUNK_SIZE);
                         log(`正在上傳主表資料，第 ${i + 1} - ${i + chunk.length} 筆...`, 'info');
                         const { error } = await supabaseClient.from(target_table).upsert(chunk, { onConflict: 'serial_number' });
                         if (error) throw error;
                     }
                     log(`主表資料上傳成功！`, 'success');
                 } else {
-                    const transaction_ids = [...new Set(uniqueCleanedRecords.map(r => r.transaction_id))].filter(Boolean);
+                    const transaction_ids = [...new Set(recordsToUpload.map(r => r.transaction_id))].filter(Boolean);
                     if (transaction_ids.length > 0) {
                         log(`執行[先刪後插]：刪除 ${transaction_ids.length} 個相關交易紀錄...`, 'info');
                         const { error: deleteError } = await supabaseClient.from(target_table).delete().in('transaction_id', transaction_ids);
@@ -289,8 +236,8 @@
                         log(`舊資料刪除成功，準備插入新資料...`, 'success');
                     }
                     
-                    for (let i = 0; i < uniqueCleanedRecords.length; i += CHUNK_SIZE) {
-                        const chunk = uniqueCleanedRecords.slice(i, i + CHUNK_SIZE);
+                    for (let i = 0; i < recordsToUpload.length; i += CHUNK_SIZE) {
+                        const chunk = recordsToUpload.slice(i, i + CHUNK_SIZE);
                         log(`正在上傳附表資料，第 ${i + 1} - ${i + chunk.length} 筆...`, 'info');
                         const { error: insertError } = await supabaseClient.from(target_table).insert(chunk);
                         if (insertError) throw insertError;
