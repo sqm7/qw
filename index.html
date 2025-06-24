@@ -55,15 +55,45 @@
             </div>
         </div>
         <footer class="text-center text-gray-500 mt-4 text-sm">
-            <p>V2.6 (schema mismatch fixed) - 此工具直接在您的瀏覽器中處理資料，不會將您的金鑰或資料傳送到第三方伺服器。</p>
+            <p>V3.1 (batch upload fixed) - 此工具直接在您的瀏覽器中處理資料，不會將您的金鑰或資料傳送到第三方伺服器。</p>
         </footer>
     </div>
 
 <script>
-    console.log("Supabase script loaded, global object:", window.supabase);
-
     const columnMapping = {
-        '鄉鎮市區': 'district', '交易標的': 'transaction_target', '土地位置建物門牌': 'address', '土地移轉總面積平方公尺': 'land_area', '都市土地使用分區': 'zoning', '非都市土地使用分區': 'non_metropolis_land_use', '非都市土地使用編定': 'non_metropolis_land_category', '交易年月日': 'transaction_date', '交易筆棟數': 'transaction_count_str', '移轉層次': 'floor_level', '總樓層數': 'total_floors', '建物型態': 'building_type', '主要用途': 'main_use', '主要建材': 'main_materials', '建築完成年月': 'completion_date', '建物移轉總面積平方公尺': 'building_area', '建物現況格局-房': 'room_count', '建物現況格局-廳': 'hall_count', '建物現況格局-衛': 'bathroom_count', '建物現況格局-隔間': 'compartment', '有無管理組織': 'management_org', '總價元': 'total_price', '單價元平方公尺': 'unit_price', '車位類別': 'parking_type', '車位移轉總面積平方公尺': 'parking_area', '車位總價元': 'parking_price', '備註': 'noted_detail', '編號': 'serial_number', '主建物面積': 'main_building_area', '附屬建物面積': 'auxiliary_building_area', '陽台面積': 'balcony_area', '電梯': 'elevator',
+        '移轉編號': 'serial_number',
+        '編號': 'serial_number',
+        '鄉鎮市區': 'district', 
+        '交易標的': 'transaction_target', 
+        '土地位置建物門牌': 'address', 
+        '土地移轉總面積平方公尺': 'land_area', 
+        '都市土地使用分區': 'zoning', 
+        '非都市土地使用分區': 'non_metropolis_land_use', 
+        '非都市土地使用編定': 'non_metropolis_land_category', 
+        '交易年月日': 'transaction_date', 
+        '交易筆棟數': 'transaction_count_str', 
+        '移轉層次': 'floor_level', 
+        '總樓層數': 'total_floors', 
+        '建物型態': 'building_type', 
+        '主要用途': 'main_use', 
+        '主要建材': 'main_materials', 
+        '建築完成年月': 'completion_date', 
+        '建物移轉總面積平方公尺': 'building_area', 
+        '建物現況格局-房': 'room_count', 
+        '建物現況格局-廳': 'hall_count', 
+        '建物現況格局-衛': 'bathroom_count', 
+        '建物現況格局-隔間': 'compartment', 
+        '有無管理組織': 'management_org', 
+        '總價元': 'total_price', 
+        '單價元平方公尺': 'unit_price', 
+        '車位類別': 'parking_type', 
+        '車位移轉總面積平方公尺': 'parking_area', 
+        '車位總價元': 'parking_price', 
+        '備註': 'noted_detail', 
+        '主建物面積': 'main_building_area', 
+        '附屬建物面積': 'auxiliary_building_area', 
+        '陽台面積': 'balcony_area', 
+        '電梯': 'elevator',
         '建案名稱': 'building_name', '起造人': 'developer', '設計人': 'architect', '監造人': 'constructor',
         '租賃年月日': 'transaction_date', '租賃筆棟數': 'transaction_count_str', '租賃層次': 'floor_level', '月租金元': 'monthly_rent', '押金': 'security_deposit', '租期': 'rental_term', '含家具': 'has_furniture', '含設備': 'has_appliance', '含管理費': 'has_management_fee', '含網路': 'has_network', '含車位': 'has_parking', '車位月租金元': 'monthly_parking_rent',
         '交易標的 Grundstücksnummer': 'land_number', '都市土地使用分區 Nutzung': 'land_use_zoning', '非都市土地使用編定 Nutzung': 'land_use_type', '移轉面積㎡': 'transfer_land_area', '持分': 'land_proportion_share', '交易編號': 'transaction_id'
@@ -133,12 +163,7 @@
             const floorMap = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10, '十一':11, '十二':12, '十三':13, '十四':14, '十五':15 };
             newRecord.total_floors = floorMap[floorStr] || (isNaN(parseInt(floorStr)) ? null : parseInt(floorStr));
         }
-
-        // ** FIX: Remove column that does not exist in the database schema **
-        // The 'transaction_count_str' column is mapped from the CSV but is not present
-        // in the 'a_transactions', 'b_transactions', or 'c_transactions' tables.
-        delete newRecord.transaction_count_str;
-
+        
         return newRecord;
     }
 
@@ -155,8 +180,9 @@
         
         const supabaseClient = supabase.createClient(url, key);
         log('Supabase 客戶端初始化成功。', 'success');
-        console.log("Created supabaseClient object:", supabaseClient);
 
+        // ** FIX: Define chunk size for batch uploads **
+        const CHUNK_SIZE = 500; 
 
         for (const file of files) {
             log(`-----------------------------------`, 'info');
@@ -196,13 +222,18 @@
                     continue;
                 }
 
+                // ** FIX: Implement batch processing for large uploads **
+                log(`總共 ${cleanedRecords.length} 筆紀錄，將以每批 ${CHUNK_SIZE} 筆的方式上傳。`, 'info');
+
                 if (data_type === 'main') {
-                    log(`準備上傳 ${cleanedRecords.length} 筆紀錄到主表...`, 'info');
-                    const { error } = await supabaseClient.from(target_table).upsert(cleanedRecords, { onConflict: 'serial_number' });
-                    if (error) throw error;
+                    for (let i = 0; i < cleanedRecords.length; i += CHUNK_SIZE) {
+                        const chunk = cleanedRecords.slice(i, i + CHUNK_SIZE);
+                        log(`正在上傳主表資料，第 ${i + 1} - ${i + chunk.length} 筆...`, 'info');
+                        const { error } = await supabaseClient.from(target_table).upsert(chunk, { onConflict: 'serial_number' });
+                        if (error) throw error;
+                    }
                     log(`主表資料上傳成功！`, 'success');
                 } else {
-                    log(`準備上傳 ${cleanedRecords.length} 筆紀錄到附表...`, 'info');
                     const transaction_ids = [...new Set(cleanedRecords.map(r => r.transaction_id))].filter(Boolean);
                     if (transaction_ids.length > 0) {
                         log(`執行[先刪後插]：刪除 ${transaction_ids.length} 個相關交易紀錄...`, 'info');
@@ -210,8 +241,13 @@
                         if (deleteError) throw new Error(`刪除舊資料失敗: ${deleteError.message}`);
                         log(`舊資料刪除成功，準備插入新資料...`, 'success');
                     }
-                    const { error: insertError } = await supabaseClient.from(target_table).insert(cleanedRecords);
-                    if (insertError) throw insertError;
+                    
+                    for (let i = 0; i < cleanedRecords.length; i += CHUNK_SIZE) {
+                        const chunk = cleanedRecords.slice(i, i + CHUNK_SIZE);
+                        log(`正在上傳附表資料，第 ${i + 1} - ${i + chunk.length} 筆...`, 'info');
+                        const { error: insertError } = await supabaseClient.from(target_table).insert(chunk);
+                        if (insertError) throw insertError;
+                    }
                     log(`附表資料上傳成功！`, 'success');
                 }
             } catch (error) {
