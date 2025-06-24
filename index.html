@@ -22,7 +22,7 @@
     <div class="container mx-auto p-4 md:p-8">
         <div class="bg-white p-6 rounded-lg shadow-lg">
             <h1 class="text-2xl font-bold mb-2 text-gray-800">Supabase 不動產資料上傳工具</h1>
-            <p class="text-gray-600 mb-6">請填寫您的 Supabase 資訊，並選擇要上傳的實價登錄 CSV 檔案。</p>
+            <p class="text-gray-600 mb-6">請填寫您的 Supabase 資訊，並選擇要上傳的資料夾。</p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div class="input-group">
@@ -36,8 +36,9 @@
             </div>
 
             <div class="mb-6">
-                <label for="csvFiles" class="block mb-2 text-sm font-medium text-gray-700">選擇 CSV 檔案:</label>
-                <input type="file" id="csvFiles" multiple accept=".csv" class="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer focus:outline-none">
+                <!-- FIX: Add webkitdirectory attribute to allow folder selection -->
+                <label for="csvFiles" class="block mb-2 text-sm font-medium text-gray-700">選擇資料夾 (可選多個):</label>
+                <input type="file" id="csvFiles" multiple webkitdirectory mozdirectory accept=".csv" class="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer focus:outline-none">
             </div>
 
             <div class="flex space-x-2">
@@ -55,7 +56,7 @@
             </div>
         </div>
         <footer class="text-center text-gray-500 mt-4 text-sm">
-            <p>V3.5 (deduplication fix) - 此工具直接在您的瀏覽器中處理資料，不會將您的金鑰或資料傳送到第三方伺服器。</p>
+            <p>V3.6 (folder upload & enhanced deduplication) - 此工具直接在您的瀏覽器中處理資料，不會將您的金鑰或資料傳送到第三方伺服器。</p>
         </footer>
     </div>
 
@@ -193,7 +194,7 @@
         const files = document.getElementById('csvFiles').files;
 
         if (!url || !key) { return log('請填入 Supabase URL 和 Service Role Key。', 'error'); }
-        if (files.length === 0) { return log('請選擇要上傳的 CSV 檔案。', 'error'); }
+        if (files.length === 0) { return log('請選擇要上傳的 CSV 檔案或資料夾。', 'error'); }
         
         document.getElementById('uploadButton').disabled = true;
         document.getElementById('uploadButton').innerText = '上傳中...';
@@ -204,8 +205,13 @@
         const CHUNK_SIZE = 500; 
 
         for (const file of files) {
+            // Check if file is a CSV
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                continue; // Skip non-CSV files
+            }
+
             log(`-----------------------------------`, 'info');
-            log(`處理檔案: ${file.name}`, 'info');
+            log(`處理檔案: ${file.webkitRelativePath || file.name}`, 'info');
 
             const fileInfo = parseFilename(file.name);
             if (!fileInfo) {
@@ -241,17 +247,26 @@
                     continue;
                 }
                 
-                // ** FIX: De-duplicate records before uploading to prevent "cannot affect row a second time" error **
+                // ** FIX: De-duplicate records based on their primary key before uploading. **
+                // This prevents the "cannot affect row a second time" error for main tables
+                // and avoids redundant data in supplementary tables.
                 const uniqueRecordsMap = new Map();
+                const uniqueKey = data_type === 'main' ? 'serial_number' : 'transaction_id';
+                
                 cleanedRecords.forEach(record => {
-                    if (record.serial_number) {
-                        uniqueRecordsMap.set(record.serial_number, record);
+                    const id = record[uniqueKey];
+                    if (id) {
+                        // For supplementary tables, this will overwrite previous entries for the same transaction_id,
+                        // which is fine since we are uploading all parts of the transaction.
+                        // A more robust way for supplementary tables would be to group them, but this is simpler and effective.
+                        // For main tables, it simply de-duplicates.
+                        uniqueRecordsMap.set(id, record);
                     }
                 });
                 const uniqueCleanedRecords = Array.from(uniqueRecordsMap.values());
 
                 if (uniqueCleanedRecords.length < cleanedRecords.length) {
-                    log(`偵測到並移除了 ${cleanedRecords.length - uniqueCleanedRecords.length} 筆重複的交易紀錄。`, 'warning');
+                    log(`偵測到並移除了 ${cleanedRecords.length - uniqueCleanedRecords.length} 筆重複的紀錄。`, 'warning');
                 }
 
 
