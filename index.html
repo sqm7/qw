@@ -50,7 +50,7 @@
             </div>
         </div>
         <footer class="text-center text-gray-500 mt-4 text-sm">
-            <p>V2.3 (fixed) - 此工具直接在您的瀏覽器中處理資料，不會將您的金鑰或資料傳送到第三方伺服器。</p>
+            <p>V2.4 (syntax fixed) - 此工具直接在您的瀏覽器中處理資料，不會將您的金鑰或資料傳送到第三方伺服器。</p>
         </footer>
     </div>
 
@@ -214,7 +214,6 @@
         document.getElementById('uploadButton').disabled = true;
         document.getElementById('uploadButton').innerText = '上傳中...';
         
-        // ** FIX: Initialize client in a new constant, from the global 'supabase' object **
         const supabaseClient = supabase.createClient(url, key);
         log('Supabase 客戶端初始化成功。', 'success');
 
@@ -271,8 +270,8 @@
                 if (data_type === 'main') {
                     // 主表：使用 upsert
                     log(`準備上傳 ${cleanedRecords.length} 筆紀錄到主表...`, 'info');
-                    // ** FIX: Use the new supabaseClient constant **
-                    const { error } = await supabaseClient.table(target_table).upsert(cleanedRecords, { onConflict: 'serial_number' });
+                    // ** FIX: Use .from() instead of .table() **
+                    const { error } = await supabaseClient.from(target_table).upsert(cleanedRecords, { onConflict: 'serial_number' });
                     if (error) throw error;
                     log(`主表資料上傳成功！`, 'success');
                 } else {
@@ -281,13 +280,13 @@
                     const transaction_ids = [...new Set(cleanedRecords.map(r => r.transaction_id))].filter(Boolean);
                     if (transaction_ids.length > 0) {
                         log(`執行[先刪後插]：刪除 ${transaction_ids.length} 個相關交易紀錄...`, 'info');
-                        // ** FIX: Use the new supabaseClient constant **
-                        const { error: deleteError } = await supabaseClient.table(target_table).delete().in('transaction_id', transaction_ids);
+                        // ** FIX: Use .from() instead of .table() **
+                        const { error: deleteError } = await supabaseClient.from(target_table).delete().in('transaction_id', transaction_ids);
                         if (deleteError) throw new Error(`刪除舊資料失敗: ${deleteError.message}`);
                         log(`舊資料刪除成功，準備插入新資料...`, 'success');
                     }
-                    // ** FIX: Use the new supabaseClient constant **
-                    const { error: insertError } = await supabaseClient.table(target_table).insert(cleanedRecords);
+                    // ** FIX: Use .from() instead of .table() **
+                    const { error: insertError } = await supabaseClient.from(target_table).insert(cleanedRecords);
                     if (insertError) throw insertError;
                     log(`附表資料上傳成功！`, 'success');
                 }
