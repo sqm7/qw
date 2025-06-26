@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>不動產批次上傳工具 (v4.3 - 智慧連動版)</title>
+    <title>不動產批次上傳工具 (v4.4 - 狀態重置版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -26,7 +26,7 @@
 
     <div class="max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
         <div class="mb-6">
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">不動產批次上傳工具 (v4.3 - 智慧連動)</h1>
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">不動產批次上傳工具 (v4.4)</h1>
             <p class="text-gray-500 mt-2">請選擇一個包含所有季/月份資料夾的「總資料夾」。系統將自動掃描、排序並智慧更新所有找到的檔案。</p>
         </div>
 
@@ -52,6 +52,7 @@
         <div class="mb-6">
             <h2 class="text-xl font-semibold text-gray-700 mb-4">步驟 2: 選擇資料夾</h2>
             <button id="selectFoldersButton" class="w-full bg-blue-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-blue-700 transition-all">選擇資料總管</button>
+            <p class="mt-2 text-xs text-gray-500 text-center">提示：請選擇一個父資料夾，程式會自動掃描其下的所有子資料夾。</p>
         </div>
         
         <!-- 檔案列表與上傳按鈕 -->
@@ -182,7 +183,20 @@
             summary.errors++;
             const errorEntry = document.createElement('pre');
             const errorTime = new Date().toLocaleTimeString();
-            errorEntry.textContent = `[${errorTime}] 檔案 ${fileName} 上傳失敗\n錯誤訊息: ${error.message}\n詳細資訊: ${error.details || 'N/A'}\n提示: ${error.hint || 'N/A'}\n--- 發生錯誤的資料區塊 (部分) ---\n${JSON.stringify(chunk.slice(0, 2), null, 2)}\n---------------------------------------\n`;
+            let errorMessage = `[${errorTime}] 檔案 ${fileName} 上傳失敗\n`;
+            errorMessage += `> 錯誤訊息: ${error.message}\n`;
+            
+            if (error.message.includes('value too long')) {
+                errorMessage += `> 智慧提示: 這通常是因為某個文字欄位的內容超過資料庫的長度限制 (例如 '交易筆棟數')。\n  請確認您已執行最新版本的「步驟 2.1：全面修正欄位類型」SQL腳本。\n`;
+            } else if (error.message.includes('violates foreign key constraint')) {
+                 errorMessage += `> 智慧提示: 這代表附表的紀錄在主表中找不到對應的「編號」。\n  這通常是因為對應的主表檔案在上傳時發生錯誤所導致的連鎖反應。\n`;
+            } else {
+                 errorMessage += `> 詳細資訊: ${error.details || 'N/A'}\n`;
+            }
+
+            errorMessage += `--- 發生錯誤的資料區塊 (部分) ---\n`;
+            errorMessage += `${JSON.stringify(chunk.slice(0, 2), null, 2)}\n---------------------------------------\n`;
+            errorEntry.textContent = errorMessage;
             DOM.errorLog.appendChild(errorEntry);
             DOM.errorLog.scrollTop = DOM.errorLog.scrollHeight;
         }
@@ -211,7 +225,23 @@
             return true;
         }
 
+        function resetUI() {
+            DOM.uploadArea.classList.add('hidden');
+            DOM.progressContainer.classList.add('hidden');
+            DOM.statusContainer.classList.add('hidden');
+            DOM.errorLogContainer.classList.add('hidden');
+            DOM.fileList.innerHTML = '';
+            DOM.statusDiv.innerHTML = '';
+            DOM.errorLog.innerHTML = '';
+            DOM.startUploadButton.disabled = false;
+            DOM.selectFoldersButton.disabled = false;
+            allFiles = [];
+            processedMainIds.clear();
+            summary = {};
+        }
+
         async function selectFolders() {
+            resetUI(); // [新增] 每次選擇都重置UI
             if (!window.showDirectoryPicker) return displayStatus('您的瀏覽器不支援資料夾選擇功能，請使用最新版本的 Chrome 或 Edge 瀏覽器。', 'error');
             try {
                 const dirHandle = await window.showDirectoryPicker();
@@ -261,11 +291,8 @@
             
             DOM.startUploadButton.disabled = true;
             DOM.selectFoldersButton.disabled = true;
-            DOM.errorLog.innerHTML = '';
-            DOM.errorLogContainer.classList.add('hidden');
             summary = { new: 0, updated: 0, identical: 0, subAdded: 0, errors: 0 };
-            processedMainIds.clear();
-
+            
             displayStatus('開始上傳流程...', 'info');
 
             const mainTables = allFiles.filter(f => f.isMain);
@@ -283,7 +310,7 @@
                 <div>  - 新增附表紀錄: ${summary.subAdded}</div>
                 <div>  - 失敗/錯誤檔案: ${summary.errors}</div>
             `);
-            DOM.selectFoldersButton.disabled = false;
+            DOM.selectFoldersButton.disabled = false; // [修正] 流程結束後重新啟用按鈕
         }
         
         async function processPhase(files, phaseName, isSmartUpdate) {
