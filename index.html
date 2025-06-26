@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>不動產批次上傳工具 (v4.2 - 智慧更新版)</title>
+    <title>不動產批次上傳工具 (v4.3 - 智慧連動版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -26,7 +26,7 @@
 
     <div class="max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
         <div class="mb-6">
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">不動產批次上傳工具 (v4.2 - 智慧更新)</h1>
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">不動產批次上傳工具 (v4.3 - 智慧連動)</h1>
             <p class="text-gray-500 mt-2">請選擇一個包含所有季/月份資料夾的「總資料夾」。系統將自動掃描、排序並智慧更新所有找到的檔案。</p>
         </div>
 
@@ -100,6 +100,8 @@
         
         let supabase = null;
         let allFiles = [];
+        let processedMainIds = new Set(); // [新增] 用於儲存已處理的主表編號
+
         const DOM = {
             selectFoldersButton: document.getElementById('selectFoldersButton'),
             startUploadButton: document.getElementById('startUploadButton'),
@@ -255,12 +257,13 @@
             DOM.errorLog.innerHTML = '';
             DOM.errorLogContainer.classList.add('hidden');
             displayStatus('開始上傳流程...', 'info');
+            processedMainIds.clear(); // [新增] 為每次批次上傳重置紀錄
 
             const mainTables = allFiles.filter(f => f.isMain);
             const subTables = allFiles.filter(f => !f.isMain);
             
             await processPhase(mainTables, '階段 1: 主表 (智慧更新)', true);
-            await processPhase(subTables, '階段 2: 附表 (直接新增)', false);
+            await processPhase(subTables, '階段 2: 附表 (智慧連動)', false);
             
             displayStatus('所有檔案上傳完成！', 'success');
             DOM.selectFoldersButton.disabled = false;
@@ -285,35 +288,37 @@
             }
         }
         
-        async function uploadSingleFile(fileInfo) { // For Sub-tables
+        // [更新] 附表上傳邏輯
+        async function uploadSingleFile(fileInfo) {
             try {
                 const tableName = `${fileInfo.countyCode}_lvr_land_${fileInfo.tableType}`;
-                const processedData = await parseFile(fileInfo);
-                if (!processedData || processedData.length === 0) return;
+                const allSubData = await parseFile(fileInfo);
+                if (!allSubData || allSubData.length === 0) return;
                 
-                // For sub-tables, we simply insert. If there are duplicates, it will fail, which is expected
-                // if the main record wasn't re-created.
-                const { error } = await supabase.from(tableName).insert(processedData);
-                if (error) throw error;
-                appendStatus(`> ${fileInfo.name}: 成功新增 ${processedData.length} 筆附表紀錄。`);
+                // [新增] 只篩選出主表有處理過的紀錄
+                const dataToUpload = allSubData.filter(row => processedMainIds.has(row['編號']));
+
+                if (dataToUpload.length > 0) {
+                    const { error } = await supabase.from(tableName).insert(dataToUpload);
+                    if (error) throw error;
+                    appendStatus(`> ${fileInfo.name}: 成功新增 ${dataToUpload.length} 筆關聯的附表紀錄。`);
+                } else {
+                    appendStatus(`> ${fileInfo.name}: 沒有需要新增的附表紀錄 (對應的主表無變更)。`);
+                }
 
             } catch (error) {
                 logError(fileInfo.name, error, []);
             }
         }
 
+        // [更新] 主表上傳邏輯
         async function uploadMainFileWithSmartUpdate(fileInfo) {
             try {
                 const tableName = `${fileInfo.countyCode}_lvr_land_${fileInfo.tableType}`;
                 const processedData = await parseFile(fileInfo);
                 if (!processedData || processedData.length === 0) return;
                 
-                let newData = [];
-                let updatedData = [];
-                let idsToDelete = [];
-                let identicalCount = 0;
-                
-                const chunkSize = 500; // Process in chunks to avoid URL length limit
+                const chunkSize = 500;
                 for (let i = 0; i < processedData.length; i += chunkSize) {
                     const chunk = processedData.slice(i, i + chunkSize);
                     const idsToCheck = chunk.map(row => row['編號']);
@@ -322,6 +327,10 @@
                     if (fetchError) throw fetchError;
 
                     const existingDataMap = new Map(existingData.map(item => [item['編號'], item]));
+                    const newData = [];
+                    const updatedData = [];
+                    const idsToDelete = [];
+                    let identicalCount = 0;
 
                     for (const newRecord of chunk) {
                         const existingRecord = existingDataMap.get(newRecord['編號']);
@@ -334,23 +343,25 @@
                             identicalCount++;
                         }
                     }
-                }
                 
-                appendStatus(`> ${fileInfo.name}: 比對完成。新: ${newData.length}, 更新: ${updatedData.length}, 相同: ${identicalCount}。`);
+                    appendStatus(`> ${fileInfo.name} (區塊 ${i/chunkSize + 1}): 比對完成。新: ${newData.length}, 更新: ${updatedData.length}, 相同: ${identicalCount}。`);
 
-                if (idsToDelete.length > 0) {
-                    appendStatus(`> ${fileInfo.name}: 正在刪除 ${idsToDelete.length} 筆舊紀錄以進行更新...`);
-                    const { error: deleteError } = await supabase.from(tableName).delete().in('編號', idsToDelete);
-                    if (deleteError) throw deleteError;
+                    const idsToProcess = [...newData.map(r => r['編號']), ...updatedData.map(r => r['編號'])];
+                    idsToProcess.forEach(id => processedMainIds.add(id)); // [新增] 記錄被處理的編號
+
+                    if (idsToDelete.length > 0) {
+                        appendStatus(`> ${fileInfo.name}: 正在刪除 ${idsToDelete.length} 筆舊紀錄以進行更新...`);
+                        const { error: deleteError } = await supabase.from(tableName).delete().in('編號', idsToDelete);
+                        if (deleteError) throw deleteError;
+                    }
+
+                    const dataToUpload = [...newData, ...updatedData];
+                    if (dataToUpload.length > 0) {
+                        appendStatus(`> ${fileInfo.name}: 正在上傳 ${dataToUpload.length} 筆新/更新的紀錄...`);
+                        const { error: insertError } = await supabase.from(tableName).insert(dataToUpload);
+                        if (insertError) throw insertError;
+                    }
                 }
-
-                const dataToUpload = [...newData, ...updatedData];
-                if (dataToUpload.length > 0) {
-                    appendStatus(`> ${fileInfo.name}: 正在上傳 ${dataToUpload.length} 筆新/更新的紀錄...`);
-                    const { error: insertError } = await supabase.from(tableName).insert(dataToUpload);
-                    if (insertError) throw insertError;
-                }
-
             } catch (error) {
                 logError(fileInfo.name, error, []);
             }
