@@ -3,30 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>不動產實價登錄資料上傳工具 (v3 - 審核版)</title>
+    <title>不動產實價登錄資料上傳工具 (v2 - 穩健版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
-        .table-container { max-height: 400px; overflow-y: auto; border-radius: 0.5rem; border: 1px solid #e5e7eb; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border-bottom: 1px solid #e5e7eb; padding: 0.75rem 1rem; text-align: left; font-size: 0.875rem; white-space: nowrap; }
-        thead th { background-color: #f9fafb; position: sticky; top: 0; z-index: 10; font-weight: 600; color: #4b5563; }
-        tbody tr:nth-child(even) { background-color: #f9fafb; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
-        #errorLog { background-color: #111827; color: #d1d5db; font-family: monospace; padding: 1rem; border-radius: 0.5rem; max-height: 300px; overflow-y: auto; }
-        #errorLog pre { white-space: pre-wrap; word-break: break-all; }
-        .diff-table td.changed { background-color: #fef9c3; color: #713f12; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .fade-in { animation: fadeIn 0.5s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+        }
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-size: 0.875rem;
+            white-space: nowrap;
+        }
+        thead th {
+            background-color: #f9fafb;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 600;
+            color: #4b5563;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        #errorLog {
+            background-color: #111827;
+            color: #d1d5db;
+            font-family: monospace;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        #errorLog pre {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body class="p-4 md:p-8">
 
-    <div class="max-w-5xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
+    <div class="max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
         <div class="mb-6">
             <h1 class="text-2xl md:text-3xl font-bold text-gray-800">不動產實價登錄資料上傳工具</h1>
             <p class="text-gray-500 mt-2">請選擇縣市、資料類型，並上傳對應的 CSV 檔案。系統將自動轉換欄位並上傳至 Supabase。</p>
@@ -75,7 +126,7 @@
         <!-- Action Button -->
         <div class="mt-8 text-center">
             <button id="processButton" class="w-full md:w-auto bg-blue-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 disabled:bg-gray-400">
-                解析並審核資料
+                解析並預覽資料
             </button>
         </div>
 
@@ -88,8 +139,19 @@
             <div id="errorLog"></div>
         </div>
 
-        <!-- 審核/預覽容器 -->
-        <div id="reviewContainer" class="mt-8 hidden"></div>
+        <!-- 預覽表格 -->
+        <div id="previewContainer" class="mt-8 hidden">
+             <h2 class="text-xl font-semibold text-gray-700 mb-4">資料預覽 (前 50 筆)</h2>
+             <div id="tableContainer" class="table-container"></div>
+             <div class="mt-6 text-center">
+                 <button id="uploadButton" class="w-full md:w-auto bg-green-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-300 disabled:bg-gray-400">
+                     <span class="flex items-center justify-center">
+                         <span id="uploadButtonText">上傳至 Supabase</span>
+                         <div id="uploadLoader" class="loader ml-3 hidden"></div>
+                     </span>
+                 </button>
+             </div>
+        </div>
 
     </div>
 
@@ -113,22 +175,21 @@
         
         // --- 全域變數 ---
         let supabase = null;
-        let categorizedData = { new: [], updated: [], identical: [] };
-        const DOM = {
-            countySelect: document.getElementById('countySelect'),
-            tableTypeSelect: document.getElementById('tableTypeSelect'),
-            processButton: document.getElementById('processButton'),
-            testConnectionButton: document.getElementById('testConnectionButton'),
-            statusDiv: document.getElementById('status'),
-            errorLogContainer: document.getElementById('errorLogContainer'),
-            errorLog: document.getElementById('errorLog'),
-            reviewContainer: document.getElementById('reviewContainer')
-        };
+        let parsedData = [];
+        const countySelect = document.getElementById('countySelect');
+        const tableTypeSelect = document.getElementById('tableTypeSelect');
+        const processButton = document.getElementById('processButton');
+        const uploadButton = document.getElementById('uploadButton');
+        const testConnectionButton = document.getElementById('testConnectionButton');
+        const statusDiv = document.getElementById('status');
+        const errorLogContainer = document.getElementById('errorLogContainer');
+        const errorLog = document.getElementById('errorLog');
+        const previewContainer = document.getElementById('previewContainer');
 
         // --- 核心函式 ---
         function initializeSelectors() {
-            Object.entries(counties).forEach(([code, name]) => DOM.countySelect.add(new Option(`${code} - ${name}`, code)));
-            Object.entries(tableTypes).forEach(([type, name]) => DOM.tableTypeSelect.add(new Option(name, type)));
+            Object.entries(counties).forEach(([code, name]) => countySelect.add(new Option(`${code} - ${name}`, code)));
+            Object.entries(tableTypes).forEach(([type, name]) => tableTypeSelect.add(new Option(name, type)));
         }
 
         function cleanNumber(value) {
@@ -153,6 +214,7 @@
             const newRow = {};
             const targetDbColumns = [...new Set(Object.values(mapping))];
             targetDbColumns.forEach(col => newRow[col] = null);
+            
             for (const csvHeader in row) {
                 const dbColumn = mapping[csvHeader];
                 if (dbColumn) {
@@ -160,110 +222,64 @@
                     if (value === undefined || value === '') continue;
                     
                     if (dbColumn.includes('日')) {
-                        newRow[dbColumn] = rocToDate(String(value));
+                        newRow[dbColumn] = rocToDate(value);
                     } else if (['交易總價', '車位總價', '房數', '廳數', '衛浴數', '持分分母', '持分分子', '交易屋齡', '車位價格'].includes(dbColumn)) {
-                        newRow[dbColumn] = parseInt(cleanNumber(value), 10);
-                        if(isNaN(newRow[dbColumn])) newRow[dbColumn] = null;
+                        const parsedInt = parseInt(cleanNumber(value), 10);
+                        newRow[dbColumn] = isNaN(parsedInt) ? null : parsedInt;
                     } else if (dbColumn.includes('面積')) {
                         newRow[dbColumn] = cleanNumber(value);
                     } else {
-                        newRow[dbColumn] = String(value);
+                        newRow[dbColumn] = value;
                     }
                 }
             }
             return newRow;
         }
 
-        function isEqual(objA, objB) {
-            const keysA = Object.keys(objA);
-            for (const key of keysA) {
-                if (key.includes('面積')) continue;
-                const valA = objA[key] ?? '';
-                const valB = objB[key] ?? '';
-                if (String(valA) !== String(valB)) return false;
-            }
-            return true;
-        }
-
-        // --- UI 渲染函式 ---
         function displayStatus(message, type = 'info') {
             const colors = { info: 'bg-blue-100 text-blue-700', success: 'bg-green-100 text-green-700', error: 'bg-red-100 text-red-700', warning: 'bg-yellow-100 text-yellow-700' };
-            DOM.statusDiv.innerHTML = message;
-            DOM.statusDiv.className = `mt-6 p-4 rounded-lg text-sm ${colors[type]}`;
-            DOM.statusDiv.classList.remove('hidden');
+            statusDiv.innerHTML = message;
+            statusDiv.className = `mt-6 p-4 rounded-lg text-sm ${colors[type]}`;
+            statusDiv.classList.remove('hidden');
         }
 
         function logError(error, chunk) {
-            DOM.errorLogContainer.classList.remove('hidden');
+            errorLogContainer.classList.remove('hidden');
             const errorEntry = document.createElement('pre');
             const errorTime = new Date().toLocaleTimeString();
             errorEntry.textContent = `[${errorTime}] 上傳失敗\n錯誤訊息: ${error.message}\n詳細資訊: ${error.details || 'N/A'}\n提示: ${error.hint || 'N/A'}\n--- 發生錯誤的資料區塊 (部分) ---\n${JSON.stringify(chunk.slice(0, 2), null, 2)}\n---------------------------------------\n`;
-            DOM.errorLog.appendChild(errorEntry);
-            DOM.errorLog.scrollTop = DOM.errorLog.scrollHeight;
-        }
-        
-        function renderSimplePreview(data) {
-             if (data.length === 0) {
-                DOM.reviewContainer.innerHTML = '<p class="text-center text-gray-500 py-4">沒有可預覽的資料。</p>';
-                return;
-            }
-            const headers = Object.keys(data[0]);
-            let tableHTML = `<h2 class="text-xl font-semibold text-gray-700 mb-4">資料預覽 (前 50 筆)</h2><div class="table-container"><table><thead><tr>`;
-            headers.forEach(h => tableHTML += `<th>${h}</th>`);
-            tableHTML += `</tr></thead><tbody>`;
-            data.slice(0, 50).forEach(row => {
-                tableHTML += `<tr>`;
-                headers.forEach(h => tableHTML += `<td>${row[h] ?? ''}</td>`);
-                tableHTML += `</tr>`;
-            });
-            tableHTML += `</tbody></table></div>`;
-            tableHTML += `<div class="mt-6 text-center"><button id="uploadButton" class="w-full md:w-auto bg-green-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-300">確認並上傳附表資料</button></div>`;
-            DOM.reviewContainer.innerHTML = tableHTML;
-            DOM.reviewContainer.querySelector('#uploadButton').addEventListener('click', () => uploadData(data, false));
+            errorLog.appendChild(errorEntry);
+            errorLog.scrollTop = errorLog.scrollHeight;
         }
 
-        function renderAdvancedReview(data) {
-            categorizedData = data;
-            let reviewHTML = `<h2 class="text-xl font-semibold text-gray-700 mb-4">資料審核</h2>`;
-            reviewHTML += `<div class="flex flex-wrap gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
-                <div class="text-green-600 font-semibold">全新紀錄: ${data.new.length} 筆</div>
-                <div class="text-blue-600 font-semibold">有更新紀錄: ${data.updated.length} 筆</div>
-                <div class="text-gray-500 font-semibold">相同紀錄: ${data.identical.length} 筆</div>
-            </div>`;
-            
-            if (data.updated.length > 0) {
-                reviewHTML += `<h3 class="text-lg font-semibold text-gray-700 mt-6 mb-2">有更新的紀錄 (請勾選要取代的項目)</h3>`;
-                data.updated.forEach((item, index) => {
-                    reviewHTML += `<div class="border rounded-lg p-4 mb-4"><div class="flex items-center mb-2">
-                        <input type="checkbox" id="update-${index}" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 update-checkbox" checked>
-                        <label for="update-${index}" class="ml-2 font-mono text-sm text-gray-800">${item.newData['編號']}</label>
-                    </div><div class="table-container"><table class="w-full text-sm diff-table"><thead><tr><th>欄位</th><th>舊資料 (資料庫)</th><th>新資料 (CSV)</th></tr></thead><tbody>`;
-                    
-                    const allKeys = [...new Set([...Object.keys(item.newData), ...Object.keys(item.oldData)])];
-                    allKeys.forEach(key => {
-                        if(key === '編號') return;
-                        const oldValue = item.oldData[key] ?? '';
-                        const newValue = item.newData[key] ?? '';
-                        const isChanged = String(oldValue) !== String(newValue) && !key.includes('面積');
-                        reviewHTML += `<tr class="${isChanged ? 'changed font-semibold' : ''}">
-                            <td class="w-1/4">${key}</td>
-                            <td class="w-3/8 font-mono">${oldValue}</td>
-                            <td class="w-3/8 font-mono">${newValue}</td>
-                        </tr>`;
-                    });
-                    reviewHTML += `</tbody></table></div></div>`;
-                });
+        function renderPreview(data, headers) {
+            const container = document.getElementById('tableContainer');
+            if (data.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-4">沒有可預覽的資料。</p>';
+                return;
             }
-            reviewHTML += `<div class="mt-8 text-center"><button id="uploadButton" class="w-full md:w-auto bg-green-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-300">確認並上傳</button></div>`;
-            DOM.reviewContainer.innerHTML = reviewHTML;
-            DOM.reviewContainer.querySelector('#uploadButton').addEventListener('click', handleAdvancedUpload);
+            const table = document.createElement('table');
+            const thead = table.createTHead();
+            const tbody = table.createTBody();
+            const headerRow = thead.insertRow();
+            headers.forEach(headerText => headerRow.appendChild(Object.assign(document.createElement('th'), { textContent: headerText })));
+            data.slice(0, 50).forEach(rowData => {
+                const row = tbody.insertRow();
+                headers.forEach(header => row.insertCell().textContent = rowData[header] ?? '');
+            });
+            container.innerHTML = '';
+            container.appendChild(table);
+            previewContainer.classList.remove('hidden');
+            previewContainer.classList.add('fade-in');
         }
         
-        // --- 事件處理與邏輯流程 ---
         async function testConnection() {
             const supabaseUrl = document.getElementById('supabaseUrl').value;
             const supabaseKey = document.getElementById('supabaseKey').value;
-            if (!supabaseUrl || !supabaseKey) return displayStatus('請填寫完整的 Supabase URL 和 Service Role Key。', 'error');
+            if (!supabaseUrl || !supabaseKey) {
+                displayStatus('請填寫完整的 Supabase URL 和 Service Role Key。', 'error');
+                return;
+            }
             displayStatus('正在測試連線...', 'info');
             try {
                 const testSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -274,119 +290,106 @@
                 displayStatus(`連線失敗: ${error.message}`, 'error');
             }
         }
-        
-        async function processAndReview() {
-            const file = document.getElementById('csvFile').files[0];
-            if (!file) return displayStatus('請選擇一個 CSV 檔案。', 'error');
-            
-            displayStatus('正在解析 CSV 檔案...', 'info');
-            DOM.reviewContainer.innerHTML = '';
-            DOM.reviewContainer.classList.add('hidden');
-            DOM.errorLogContainer.classList.add('hidden');
-            DOM.errorLog.innerHTML = ''; 
 
-            const selectedTableType = DOM.tableTypeSelect.value;
-            const isMainTable = ['a', 'b', 'c'].includes(selectedTableType);
+        testConnectionButton.addEventListener('click', testConnection);
+        
+        processButton.addEventListener('click', () => {
+            const file = document.getElementById('csvFile').files[0];
+            if (!file) {
+                displayStatus('請選擇一個 CSV 檔案。', 'error');
+                return;
+            }
+            displayStatus('正在解析 CSV 檔案...', 'info');
+            previewContainer.classList.add('hidden');
+            errorLogContainer.classList.add('hidden');
+            errorLog.innerHTML = ''; 
 
             Papa.parse(file, {
                 header: true,
                 skipEmptyLines: true,
-                complete: async (results) => {
-                    if (results.errors.length > 0) return displayStatus(`解析 CSV 時發生錯誤: ${results.errors[0].message}`, 'error');
+                complete: (results) => {
+                    if (results.errors.length > 0) {
+                        displayStatus(`解析 CSV 時發生錯誤: ${results.errors[0].message}`, 'error');
+                        return;
+                    }
                     
                     let dataRows = results.data;
-                    if (dataRows.length > 0 && dataRows[0]['編號']?.toLowerCase().includes('serial number')) {
-                       displayStatus('偵測到英文標頭行，已自動將其移除。', 'info');
-                       dataRows.shift();
+                    
+                    if (dataRows.length > 0) {
+                        const firstRow = dataRows[0];
+                        if (firstRow['編號'] && firstRow['編號'].toLowerCase().includes('serial number')) {
+                           displayStatus('偵測到英文標頭行，已自動將其移除。', 'info');
+                           dataRows = dataRows.slice(1);
+                        }
                     }
 
-                    const mapping = columnMappings[selectedTableType];
-                    if (!mapping) return displayStatus('找不到對應的資料表欄位映對規則。', 'error');
+                    const mapping = columnMappings[tableTypeSelect.value];
+                    if (!mapping) {
+                        displayStatus('找不到對應的資料表欄位映對規則。', 'error');
+                        return;
+                    }
 
-                    const processedData = dataRows.map(row => processRow(row, mapping));
-                    if (processedData.length === 0) return displayStatus('解析完成，但沒有資料。請檢查 CSV 內容。', 'error');
-
-                    if (isMainTable) {
-                        await performAdvancedReview(processedData);
+                    parsedData = dataRows.map(row => processRow(row, mapping));
+                    
+                    if (parsedData.length > 0) {
+                        const isDataEmpty = parsedData.every(row => Object.values(row).every(val => val === null));
+                        if(isDataEmpty) {
+                             displayStatus('警告：您上傳的 CSV 檔案標頭與所選的資料表類型可能不符，無法解析出任何有效資料。請確認選擇了正確的檔案。', 'warning');
+                             previewContainer.classList.add('hidden');
+                             return;
+                        }
+                        
+                        const headers = Object.keys(parsedData[0]);
+                        renderPreview(parsedData, headers);
+                        displayStatus(`成功解析 ${parsedData.length} 筆資料。請預覽並確認後上傳。`, 'info');
                     } else {
-                        renderSimplePreview(processedData);
-                        DOM.reviewContainer.classList.remove('hidden');
+                        displayStatus('解析完成，但沒有資料。請檢查 CSV 內容。', 'error');
                     }
                 }
             });
-        }
+        });
 
-        async function performAdvancedReview(csvData) {
-            displayStatus('已解析資料，正在從資料庫比對重複紀錄...', 'info');
+        uploadButton.addEventListener('click', async () => {
             const supabaseUrl = document.getElementById('supabaseUrl').value;
             const supabaseKey = document.getElementById('supabaseKey').value;
-            if (!supabaseUrl || !supabaseKey) return displayStatus('比對前請先填寫 Supabase 連線資訊。', 'error');
+            if (!supabaseUrl || !supabaseKey) {
+                displayStatus('請填寫完整的 Supabase URL 和 Service Role Key。', 'error');
+                return;
+            }
+            if (parsedData.length === 0) {
+                displayStatus('沒有可上傳的資料。', 'error');
+                return;
+            }
 
             try {
                 supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-                const tableName = `${DOM.countySelect.value.toLowerCase()}_lvr_land_${DOM.tableTypeSelect.value}`;
-                const idsToCheck = csvData.map(row => row['編號']);
-
-                const { data: existingData, error } = await supabase.from(tableName).select('*').in('編號', idsToCheck);
-                if (error) throw error;
-
-                const existingDataMap = new Map(existingData.map(item => [item['編號'], item]));
-                const result = { new: [], updated: [], identical: [] };
-
-                for (const newData of csvData) {
-                    const existingRecord = existingDataMap.get(newData['編號']);
-                    if (!existingRecord) {
-                        result.new.push(newData);
-                    } else {
-                        if (isEqual(newData, existingRecord)) {
-                            result.identical.push(newData);
-                        } else {
-                            result.updated.push({ oldData: existingRecord, newData: newData });
-                        }
-                    }
-                }
-                
-                renderAdvancedReview(result);
-                DOM.reviewContainer.classList.remove('hidden');
-                displayStatus('比對完成，請審核有更新的紀錄。', 'info');
-
             } catch (error) {
-                displayStatus(`比對資料時發生錯誤: ${error.message}`, 'error');
+                displayStatus(`Supabase 連線失敗: ${error.message}`, 'error');
+                return;
             }
-        }
-
-        async function uploadData(dataToUpload, isMainTable) {
-            const supabaseUrl = document.getElementById('supabaseUrl').value;
-            const supabaseKey = document.getElementById('supabaseKey').value;
-            if (!supabaseUrl || !supabaseKey) return displayStatus('請填寫完整的 Supabase URL 和 Service Role Key。', 'error');
-            if (dataToUpload.length === 0) return displayStatus('沒有需要上傳的資料。', 'warning');
             
-            try {
-                supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-            } catch (error) {
-                return displayStatus(`Supabase 連線失敗: ${error.message}`, 'error');
-            }
+            const countyCode = countySelect.value.toLowerCase();
+            const tableSuffix = tableTypeSelect.value;
+            const tableName = `${countyCode}_lvr_land_${tableSuffix}`;
+            
+            const uploadButtonText = document.getElementById('uploadButtonText');
+            const uploadLoader = document.getElementById('uploadLoader');
 
-            const tableName = `${DOM.countySelect.value.toLowerCase()}_lvr_land_${DOM.tableTypeSelect.value}`;
-            const uploadButton = DOM.reviewContainer.querySelector('#uploadButton');
+            uploadButtonText.textContent = '上傳中...';
+            uploadLoader.classList.remove('hidden');
             uploadButton.disabled = true;
-            uploadButton.innerHTML = `<div class="loader mx-auto"></div>`;
+            errorLog.innerHTML = '';
+            errorLogContainer.classList.add('hidden');
 
-            DOM.errorLog.innerHTML = '';
-            DOM.errorLogContainer.classList.add('hidden');
-
-            const chunkSize = 500;
+            const chunkSize = 1000;
             let insertedCount = 0;
             let errorCount = 0;
-            
-            const uploadMethod = isMainTable ? 'upsert' : 'insert';
 
-            for (let i = 0; i < dataToUpload.length; i += chunkSize) {
-                const chunk = dataToUpload.slice(i, i + chunkSize);
-                displayStatus(`正在上傳 ${i + 1} - ${i + chunk.length} 筆資料... (共 ${dataToUpload.length} 筆)`, 'info');
-                
-                const { error } = await supabase.from(tableName)[uploadMethod](chunk, { onConflict: '編號' });
-                
+            for (let i = 0; i < parsedData.length; i += chunkSize) {
+                const chunk = parsedData.slice(i, i + chunkSize);
+                displayStatus(`正在上傳 ${i + 1} - ${i + chunk.length} 筆資料... (共 ${parsedData.length} 筆)`, 'info');
+                const { error } = await supabase.from(tableName).insert(chunk); // **[修正]** 附表永遠使用 insert
+
                 if (error) {
                     errorCount++;
                     logError(error, chunk);
@@ -396,30 +399,17 @@
             }
 
             if (errorCount > 0) {
-                 displayStatus(`上傳完成，但有 ${errorCount} 個資料區塊失敗。成功上傳/更新 ${insertedCount} 筆。請檢查下方的錯誤日誌。`, 'error');
+                 displayStatus(`上傳完成，但有 ${errorCount} 個資料區塊失敗。成功上傳 ${insertedCount} 筆。請檢查下方的錯誤日誌。`, 'error');
             } else {
-                 displayStatus(`成功！總共 ${insertedCount} 筆資料已上傳或更新至表格 ${tableName}。`, 'success');
+                 displayStatus(`成功！總共 ${insertedCount} 筆資料已上傳至表格 ${tableName}。`, 'success');
             }
+
+            uploadButtonText.textContent = '上傳至 Supabase';
+            uploadLoader.classList.add('hidden');
             uploadButton.disabled = false;
-            uploadButton.textContent = '上傳完成';
-        }
+        });
 
-        function handleAdvancedUpload() {
-            const dataToUpload = [...categorizedData.new];
-            const checkboxes = DOM.reviewContainer.querySelectorAll('.update-checkbox');
-            checkboxes.forEach((checkbox, index) => {
-                if (checkbox.checked) {
-                    dataToUpload.push(categorizedData.updated[index].newData);
-                }
-            });
-            uploadData(dataToUpload, true);
-        }
-
-        // --- 初始化 ---
         window.onload = initializeSelectors;
-        DOM.testConnectionButton.addEventListener('click', testConnection);
-        DOM.processButton.addEventListener('click', processAndReview);
-
     </script>
 </body>
 </html>
