@@ -254,6 +254,7 @@
             DOM.selectFoldersButton.disabled = true;
             DOM.errorLog.innerHTML = '';
             DOM.errorLogContainer.classList.add('hidden');
+            displayStatus('開始上傳流程...', 'info');
 
             const mainTables = allFiles.filter(f => f.isMain);
             const subTables = allFiles.filter(f => !f.isMain);
@@ -267,7 +268,7 @@
         
         async function processPhase(files, phaseName, isSmartUpdate) {
              if(files.length === 0) {
-                displayStatus(`在 ${phaseName} 中沒有需要上傳的檔案，跳過此階段。`, 'info');
+                appendStatus(`> 在 ${phaseName} 中沒有需要上傳的檔案，跳過此階段。`);
                 return;
              }
             let processedCount = 0;
@@ -288,10 +289,13 @@
             try {
                 const tableName = `${fileInfo.countyCode}_lvr_land_${fileInfo.tableType}`;
                 const processedData = await parseFile(fileInfo);
-                if (!processedData) return;
+                if (!processedData || processedData.length === 0) return;
                 
+                // For sub-tables, we simply insert. If there are duplicates, it will fail, which is expected
+                // if the main record wasn't re-created.
                 const { error } = await supabase.from(tableName).insert(processedData);
                 if (error) throw error;
+                appendStatus(`> ${fileInfo.name}: 成功新增 ${processedData.length} 筆附表紀錄。`);
 
             } catch (error) {
                 logError(fileInfo.name, error, []);
@@ -302,39 +306,47 @@
             try {
                 const tableName = `${fileInfo.countyCode}_lvr_land_${fileInfo.tableType}`;
                 const processedData = await parseFile(fileInfo);
-                if (!processedData) return;
+                if (!processedData || processedData.length === 0) return;
                 
-                const idsToCheck = processedData.map(row => row['編號']);
-                const { data: existingData, error: fetchError } = await supabase.from(tableName).select('*').in('編號', idsToCheck);
-                if (fetchError) throw fetchError;
-
-                const existingDataMap = new Map(existingData.map(item => [item['編號'], item]));
-                const newData = [];
-                const updatedData = [];
-                const idsToDelete = [];
+                let newData = [];
+                let updatedData = [];
+                let idsToDelete = [];
                 let identicalCount = 0;
+                
+                const chunkSize = 500; // Process in chunks to avoid URL length limit
+                for (let i = 0; i < processedData.length; i += chunkSize) {
+                    const chunk = processedData.slice(i, i + chunkSize);
+                    const idsToCheck = chunk.map(row => row['編號']);
+                    
+                    const { data: existingData, error: fetchError } = await supabase.from(tableName).select('*').in('編號', idsToCheck);
+                    if (fetchError) throw fetchError;
 
-                for (const newRecord of processedData) {
-                    const existingRecord = existingDataMap.get(newRecord['編號']);
-                    if (!existingRecord) {
-                        newData.push(newRecord);
-                    } else if (!isEqual(newRecord, existingRecord, fileInfo.tableType)) {
-                        idsToDelete.push(newRecord['編號']);
-                        updatedData.push(newRecord);
-                    } else {
-                        identicalCount++;
+                    const existingDataMap = new Map(existingData.map(item => [item['編號'], item]));
+
+                    for (const newRecord of chunk) {
+                        const existingRecord = existingDataMap.get(newRecord['編號']);
+                        if (!existingRecord) {
+                            newData.push(newRecord);
+                        } else if (!isEqual(newRecord, existingRecord, fileInfo.tableType)) {
+                            idsToDelete.push(newRecord['編號']);
+                            updatedData.push(newRecord);
+                        } else {
+                            identicalCount++;
+                        }
                     }
                 }
                 
-                appendStatus(`> ${fileInfo.name}: 找到 ${newData.length} 筆新紀錄, ${updatedData.length} 筆更新, ${identicalCount} 筆相同。`);
+                appendStatus(`> ${fileInfo.name}: 比對完成。新: ${newData.length}, 更新: ${updatedData.length}, 相同: ${identicalCount}。`);
 
                 if (idsToDelete.length > 0) {
+                    appendStatus(`> ${fileInfo.name}: 正在刪除 ${idsToDelete.length} 筆舊紀錄以進行更新...`);
                     const { error: deleteError } = await supabase.from(tableName).delete().in('編號', idsToDelete);
                     if (deleteError) throw deleteError;
                 }
 
                 const dataToUpload = [...newData, ...updatedData];
                 if (dataToUpload.length > 0) {
+                    appendStatus(`> ${fileInfo.name}: 正在上傳 ${dataToUpload.length} 筆新/更新的紀錄...`);
                     const { error: insertError } = await supabase.from(tableName).insert(dataToUpload);
                     if (insertError) throw insertError;
                 }
