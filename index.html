@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>不動產實價登錄資料上傳工具</title>
+    <title>不動產實價登錄資料上傳工具 (v2 - 穩健版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -159,17 +159,19 @@
         // --- 設定與常數 ---
         const counties = { 'A': '臺北市', 'B': '臺中市', 'C': '基隆市', 'D': '臺南市', 'E': '高雄市', 'F': '新北市', 'G': '宜蘭縣', 'H': '桃園市', 'I': '嘉義市', 'J': '新竹縣', 'K': '苗栗縣', 'M': '南投縣', 'N': '彰化縣', 'O': '新竹市', 'P': '雲林縣', 'Q': '嘉義縣', 'T': '屏東縣', 'U': '花蓮縣', 'V': '臺東縣', 'W': '金門縣', 'X': '澎湖縣', 'Z': '連江縣' };
         const tableTypes = { 'a': '中古交易主表', 'a_build': '中古-建物附表', 'a_land': '中古-土地附表', 'a_park': '中古-車位附表', 'b': '預售交易主表', 'b_land': '預售-土地附表', 'b_park': '預售-車位附表', 'c': '租賃交易主表', 'c_build': '租賃-建物附表', 'c_land': '租賃-土地附表', 'c_park': '租賃-車位附表' };
+        
+        // [更新] 增強欄位對應規則，加入常見別名
         const columnMappings = {
             'a': { '編號': '編號', '鄉鎮市區': '行政區', '交易標的': '交易標的', '土地位置建物門牌': '地址', '交易年月日': '交易日', '交易筆棟數': '交易筆棟數', '移轉層次': '樓層', '建物型態': '建物型態', '主要用途': '主要用途', '建物移轉總面積平方公尺': '產權面積_房車', '建物現況格局-房': '房數', '建物現況格局-廳': '廳數', '建物現況格局-衛': '衛浴數', '總價元': '交易總價', '車位類別': '車位類別', '車位移轉總面積平方公尺': '車位總面積', '車位總價元': '車位總價', '備註': '備註', '主建物面積': '主建物面積', '附屬建物面積': '附屬建物面積', '陽台面積': '陽台面積'},
             'a_build': { '編號': '編號', '屋齡': '交易屋齡', '主要建材': '結構', '建築完成年月日': '完工日', '總層數': '總樓層', '移轉情形': '移轉情形' },
-            'a_land': { '編號': '編號', '土地位置': '地號_段', '地號': '地號', '土地移轉面積平方公尺': '土地持分面積', '非都市土地使用分區': '使用分區', '權利人持分分母': '持分分母', '權利人持分分子': '持分分子' },
+            'a_land': { '編號': '編號', '土地位置': '地號_段', '地號': '地號', '土地移轉面積平方公尺': '土地持分面積', '使用分區或編定': '使用分區', '非都市土地使用分區': '使用分區', '權利人持分分母': '持分分母', '權利人持分分子': '持分分子' },
             'a_park': { '編號': '編號', '車位類別': '車位類別', '車位價格': '車位價格', '車位面積平方公尺': '車位面積', '車位所在樓層': '車位樓層' },
             'b': { '編號': '編號', '鄉鎮市區': '行政區', '交易標的': '交易標的', '土地位置建物門牌': '地址', '交易年月日': '交易日', '交易筆棟數': '交易筆棟數', '移轉層次': '樓層', '建物型態': '建物型態', '主要用途': '主要用途', '建物移轉總面積平方公尺': '產權面積_房車', '建物現況格局-房': '房數', '建物現況格局-廳': '廳數', '建物現況格局-衛': '衛浴數', '總價元': '交易總價', '車位類別': '車位類別', '車位移轉總面積平方公尺': '車位總面積', '車位總價元': '車位總價', '備註': '備註', '建案名稱': '建案名稱', '棟及號': '戶別', '解約情形': '解約情形' },
-            'b_land': { '編號': '編號', '土地位置': '地號_段', '地號': '地號', '土地移轉面積平方公尺': '土地持分面積', '非都市土地使用分區': '使用分區', '權利人持分分母': '持分分母', '權利人持分分子': '持分分子' },
+            'b_land': { '編號': '編號', '土地位置': '地號_段', '地號': '地號', '土地移轉面積平方公尺': '土地持分面積', '使用分區或編定': '使用分區', '非都市土地使用分區': '使用分區', '權利人持分分母': '持分分母', '權利人持分分子': '持分分子' },
             'b_park': { '編號': '編號', '車位類別': '車位類別', '車位價格': '車位價格', '車位面積平方公尺': '車位面積', '車位所在樓層': '車位樓層' },
             'c': { '編號': '編號', '鄉鎮市區': '行政區', '交易標的': '交易標的', '土地位置建物門牌': '地址', '租賃年月日': '交易日', '租賃筆棟數': '交易筆棟數', '租賃層次': '樓層', '建物型態': '建物型態', '主要用途': '主要用途', '建物總面積平方公尺': '租賃面積', '建物現況格局-房': '房數', '建物現況格局-廳': '廳數', '建物現況格局-衛': '衛浴數', '總額元': '交易總價', '車位類別': '車位類別', '車位面積平方公尺': '車位總面積', '車位總額元': '車位總價', '備註': '備註', '出租型態': '出租型態', '租賃期間': '租賃期間', '附屬設備': '附屬設備', '租賃住宅服務': '租賃住宅服務' },
             'c_build': { '編號': '編號', '屋齡': '交易屋齡', '主要建材': '結構', '建築完成年月日': '完工日', '總層數': '總樓層', '移轉情形': '移轉情形' },
-            'c_land': { '編號': '編號', '土地位置': '地號_段', '地號': '地號', '土地移轉面積平方公尺': '土地租賃面積', '非都市土地使用分區': '使用分區' },
+            'c_land': { '編號': '編號', '土地位置': '地號_段', '地號': '地號', '土地移轉面積平方公尺': '土地租賃面積', '使用分區或編定': '使用分區', '非都市土地使用分區': '使用分區' },
             'c_park': { '編號': '編號', '車位類別': '車位類別', '車位價格': '車位價格', '車位面積平方公尺': '車位面積', '車位所在樓層': '車位樓層' }
         };
         
@@ -216,26 +218,41 @@
             } catch (e) { return null; }
         }
         
+        // [更新] 重寫核心處理邏輯，使其更穩健
         function processRow(row, mapping) {
             const newRow = {};
-            for (const csvHeader in mapping) {
+            // 取得目標資料庫所有可能的欄位名稱
+            const targetDbColumns = [...new Set(Object.values(mapping))];
+            
+            // 初始化所有目標欄位為 null
+            targetDbColumns.forEach(col => {
+                newRow[col] = null;
+            });
+            
+            // 遍歷 CSV 中的每一欄 (csvHeader)
+            for (const csvHeader in row) {
+                // 檢查此欄位是否存在於我們的對應規則中
                 const dbColumn = mapping[csvHeader];
-                let value = row[csvHeader];
+                if (dbColumn) {
+                    let value = row[csvHeader];
 
-                if (value === undefined || value === '') {
-                    newRow[dbColumn] = null;
-                    continue;
-                }
-                
-                if (dbColumn.includes('日')) {
-                    newRow[dbColumn] = rocToDate(value);
-                } else if (['交易總價', '車位總價', '房數', '廳數', '衛浴數', '持分分母', '持分分子', '交易屋齡', '車位價格'].includes(dbColumn)) {
-                    const parsedInt = parseInt(cleanNumber(value), 10);
-                    newRow[dbColumn] = isNaN(parsedInt) ? null : parsedInt;
-                } else if (dbColumn.includes('面積')) {
-                    newRow[dbColumn] = cleanNumber(value);
-                } else {
-                    newRow[dbColumn] = value;
+                    // 如果值為空，則設為 null，並繼續處理下一欄
+                    if (value === undefined || value === '') {
+                        newRow[dbColumn] = null;
+                        continue;
+                    }
+                    
+                    // 根據目標資料庫欄位名稱進行資料清理
+                    if (dbColumn.includes('日')) {
+                        newRow[dbColumn] = rocToDate(value);
+                    } else if (['交易總價', '車位總價', '房數', '廳數', '衛浴數', '持分分母', '持分分子', '交易屋齡', '車位價格'].includes(dbColumn)) {
+                        const parsedInt = parseInt(cleanNumber(value), 10);
+                        newRow[dbColumn] = isNaN(parsedInt) ? null : parsedInt;
+                    } else if (dbColumn.includes('面積')) {
+                        newRow[dbColumn] = cleanNumber(value);
+                    } else {
+                        newRow[dbColumn] = value;
+                    }
                 }
             }
             return newRow;
@@ -245,7 +262,8 @@
             const colors = {
                 info: 'bg-blue-100 text-blue-700',
                 success: 'bg-green-100 text-green-700',
-                error: 'bg-red-100 text-red-700'
+                error: 'bg-red-100 text-red-700',
+                warning: 'bg-yellow-100 text-yellow-700'
             };
             statusDiv.innerHTML = message;
             statusDiv.className = `mt-6 p-4 rounded-lg text-sm ${colors[type]}`;
@@ -306,7 +324,6 @@
             displayStatus('正在測試連線...', 'info');
             try {
                 const testSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-                // 執行一個輕量級的查詢來驗證連線和權限
                 const { error } = await testSupabase.from('county_codes').select('code', { count: 'exact', head: true });
                 if (error) throw error;
                 displayStatus('連線成功！可以開始上傳資料。', 'success');
@@ -328,7 +345,7 @@
             displayStatus('正在解析 CSV 檔案...', 'info');
             document.getElementById('previewContainer').classList.add('hidden');
             errorLogContainer.classList.add('hidden');
-            errorLog.innerHTML = ''; // 清空舊日誌
+            errorLog.innerHTML = ''; 
 
             Papa.parse(file, {
                 header: true,
@@ -344,7 +361,16 @@
                         return;
                     }
                     parsedData = results.data.map(row => processRow(row, mapping));
+                    
                     if (parsedData.length > 0) {
+                        // 檢查是否所有解析出的資料都是空的（可能因為檔案選錯）
+                        const isDataEmpty = parsedData.every(row => Object.values(row).every(val => val === null));
+                        if(isDataEmpty) {
+                             displayStatus('警告：您上傳的 CSV 檔案標頭與所選的資料表類型可能不符，無法解析出任何有效資料。請確認選擇了正確的檔案。', 'warning');
+                             document.getElementById('previewContainer').classList.add('hidden');
+                             return;
+                        }
+                        
                         const headers = Object.keys(parsedData[0]);
                         renderPreview(parsedData, headers);
                         displayStatus(`成功解析 ${parsedData.length} 筆資料。請預覽並確認後上傳。`, 'info');
@@ -381,7 +407,7 @@
             document.getElementById('uploadButtonText').textContent = '上傳中...';
             document.getElementById('uploadLoader').classList.remove('hidden');
             uploadButton.disabled = true;
-            errorLog.innerHTML = ''; // 清空舊日誌
+            errorLog.innerHTML = '';
             errorLogContainer.classList.add('hidden');
 
             const chunkSize = 1000;
