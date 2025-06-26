@@ -1,833 +1,419 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>不動產資料 CSV 上傳工具</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/papaparse/5.4.1/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase-js/2.38.0/umd/supabase.min.js"></script>
+    <title>不動產實價登錄資料上傳工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Microsoft JhengHei', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
         }
-
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            max-width: 800px;
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+        }
+        table {
             width: 100%;
-            padding: 40px;
+            border-collapse: collapse;
         }
-
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
+        th, td {
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-size: 0.875rem;
+            white-space: nowrap;
         }
-
-        .header h1 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 2.5em;
+        thead th {
+            background-color: #f9fafb;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 600;
+            color: #4b5563;
         }
-
-        .header p {
-            color: #666;
-            font-size: 1.1em;
+        tbody tr:nth-child(even) {
+            background-color: #f9fafb;
         }
-
-        .config-section {
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 30px;
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
         }
-
-        .config-section h3 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 1.3em;
-        }
-
-        .input-group {
-            margin-bottom: 20px;
-        }
-
-        .input-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #555;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
-
-        .input-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .upload-area {
-            border: 3px dashed #667eea;
-            border-radius: 15px;
-            padding: 60px 20px;
-            text-align: center;
-            margin-bottom: 30px;
-            transition: all 0.3s;
-            cursor: pointer;
-        }
-
-        .upload-area:hover {
-            background: #f8f9ff;
-            border-color: #5a6fd8;
-        }
-
-        .upload-area.dragover {
-            background: #f0f4ff;
-            border-color: #4c63d2;
-            transform: scale(1.02);
-        }
-
-        .upload-icon {
-            font-size: 4em;
-            color: #667eea;
-            margin-bottom: 20px;
-        }
-
-        .upload-text {
-            font-size: 1.2em;
-            color: #333;
-            margin-bottom: 10px;
-        }
-
-        .upload-hint {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        .file-list {
-            margin-bottom: 30px;
-        }
-
-        .file-item {
-            background: #f1f3f4;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .file-info {
-            display: flex;
-            align-items: center;
-        }
-
-        .file-icon {
-            margin-right: 15px;
-            font-size: 1.5em;
-            color: #667eea;
-        }
-
-        .file-details h4 {
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .file-details p {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        .remove-btn {
-            background: #ff4757;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 15px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .remove-btn:hover {
-            background: #ff3742;
-        }
-
-        .upload-btn {
-            width: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 15px;
-            padding: 20px;
-            font-size: 1.2em;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.3s;
-            margin-bottom: 20px;
-        }
-
-        .upload-btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .upload-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .progress-container {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .progress-bar {
-            background: #e0e0e0;
-            border-radius: 10px;
-            height: 20px;
-            overflow: hidden;
-            margin-bottom: 15px;
-        }
-
-        .progress-fill {
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            height: 100%;
-            width: 0%;
-            transition: width 0.3s;
-        }
-
-        .progress-text {
-            text-align: center;
-            color: #333;
-            font-weight: bold;
-        }
-
-        .log-container {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
+        #errorLog {
+            background-color: #111827;
+            color: #d1d5db;
+            font-family: monospace;
+            padding: 1rem;
+            border-radius: 0.5rem;
             max-height: 300px;
             overflow-y: auto;
-            display: none;
         }
-
-        .log-item {
-            padding: 8px 0;
-            border-bottom: 1px solid #e0e0e0;
-            font-family: monospace;
-            font-size: 0.9em;
+        #errorLog pre {
+            white-space: pre-wrap;
+            word-break: break-all;
         }
-
-        .log-success { color: #27ae60; }
-        .log-error { color: #e74c3c; }
-        .log-info { color: #3498db; }
-        .log-warning { color: #f39c12; }
-
-        .hidden {
-            display: none;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
-
-        #fileInput {
-            display: none;
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🏠 不動產資料上傳工具</h1>
-            <p>輕鬆上傳您的 CSV 檔案到 Supabase 資料庫</p>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
+        <div class="mb-6">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">不動產實價登錄資料上傳工具</h1>
+            <p class="text-gray-500 mt-2">請選擇縣市、資料類型，並上傳對應的 CSV 檔案。系統將自動轉換欄位並上傳至 Supabase。</p>
         </div>
 
-        <div class="config-section">
-            <h3>📋 Supabase 設定</h3>
-            <div class="input-group">
-                <label for="supabaseUrl">Supabase URL</label>
-                <input type="text" id="supabaseUrl" placeholder="https://your-project.supabase.co" />
+        <!-- Step 1: Supabase 連線資訊 -->
+        <div class="mb-6 border-b pb-6">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">步驟 1: Supabase 連線資訊</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="supabaseUrl" class="block text-sm font-medium text-gray-700 mb-1">Supabase URL</label>
+                    <input type="text" id="supabaseUrl" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="https://your-project-ref.supabase.co">
+                </div>
+                <div>
+                    <label for="supabaseKey" class="block text-sm font-medium text-gray-700 mb-1">Supabase Service Role Key</label>
+                    <input type="password" id="supabaseKey" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="your-service-role-key">
+                     <p class="mt-1 text-xs text-gray-500">此金鑰擁有最高權限以寫入資料。請至 Supabase 專案的「Project Settings」>「API」中複製。</p>
+                </div>
             </div>
-            <div class="input-group">
-                <label for="supabaseKey">Supabase API Key</label>
-                <input type="password" id="supabaseKey" placeholder="your-anon-key" />
-            </div>
-        </div>
-
-        <div class="config-section">
-            <h3>🎯 欄位篩選設定</h3>
-            <div class="input-group">
-                <label>
-                    <input type="radio" name="fieldMode" value="all" checked /> 
-                    上傳所有欄位
-                </label>
-            </div>
-            <div class="input-group">
-                <label>
-                    <input type="radio" name="fieldMode" value="selected" /> 
-                    只上傳選定欄位
-                </label>
-            </div>
-            <div id="fieldSelection" style="display: none; margin-top: 20px;">
-                <p style="color: #666; margin-bottom: 15px;">請選擇要上傳的欄位（先選擇檔案後會顯示可選欄位）</p>
-                <div id="fieldCheckboxes"></div>
+            <div class="mt-4 text-right">
+                <button id="testConnectionButton" class="bg-indigo-100 text-indigo-700 font-semibold py-2 px-4 rounded-lg shadow-sm hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 disabled:bg-gray-400">
+                    測試連線
+                </button>
             </div>
         </div>
 
-        <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">📁</div>
-            <div class="upload-text">拖拉 CSV 檔案到這裡</div>
-            <div class="upload-hint">或點擊選擇檔案 (支援多檔案選擇)</div>
-            <input type="file" id="fileInput" multiple accept=".csv" />
-        </div>
-
-        <div class="file-list" id="fileList"></div>
-
-        <button class="upload-btn" id="uploadBtn" disabled>開始上傳資料 🚀</button>
-
-        <div class="progress-container" id="progressContainer">
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
+        <!-- Step 2: 上傳設定 -->
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">步驟 2: 上傳設定與檔案</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="countySelect" class="block text-sm font-medium text-gray-700 mb-1">選擇縣市</label>
+                    <select id="countySelect" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></select>
+                </div>
+                <div>
+                    <label for="tableTypeSelect" class="block text-sm font-medium text-gray-700 mb-1">選擇資料表</label>
+                    <select id="tableTypeSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></select>
+                </div>
+                <div>
+                    <label for="csvFile" class="block text-sm font-medium text-gray-700 mb-1">選擇 CSV 檔案</label>
+                    <input type="file" id="csvFile" accept=".csv" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
             </div>
-            <div class="progress-text" id="progressText">準備上傳...</div>
+        </div>
+        
+        <!-- Action Button -->
+        <div class="mt-8 text-center">
+            <button id="processButton" class="w-full md:w-auto bg-blue-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 disabled:bg-gray-400">
+                解析並預覽資料
+            </button>
         </div>
 
-        <div class="log-container" id="logContainer">
-            <div id="logContent"></div>
+        <!-- 狀態與日誌 -->
+        <div id="status" class="mt-6 p-4 bg-gray-50 rounded-lg text-sm text-gray-600 hidden"></div>
+
+        <!-- 錯誤日誌 -->
+        <div id="errorLogContainer" class="mt-6 hidden">
+            <h3 class="text-lg font-semibold text-red-600 mb-2">錯誤日誌</h3>
+            <div id="errorLog"></div>
         </div>
+
+        <!-- 預覽表格 -->
+        <div id="previewContainer" class="mt-8 hidden">
+             <h2 class="text-xl font-semibold text-gray-700 mb-4">資料預覽 (前 50 筆)</h2>
+             <div id="tableContainer" class="table-container"></div>
+             <div class="mt-6 text-center">
+                 <button id="uploadButton" class="w-full md:w-auto bg-green-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-300 disabled:bg-gray-400">
+                     <span class="flex items-center justify-center">
+                         <span id="uploadButtonText">上傳至 Supabase</span>
+                         <div id="uploadLoader" class="loader ml-3 hidden"></div>
+                     </span>
+                 </button>
+             </div>
+        </div>
+
     </div>
 
     <script>
-        let selectedFiles = [];
-        let supabase = null;
-
-        // 根據文件的欄位對應表 - 使用資料庫欄位名稱
-        const fieldMappings = {
-            // 中古交易主表 (a_lvr_land_a.csv)
-            'a_lvr_land_a.csv': {
-                '編號': '編號',
-                '鄉鎮市區': '行政區', 
-                '交易標的': '交易標的',
-                '土地位置建物門牌': '地址',
-                '交易年月日': '交易日',
-                '交易筆棟數': '交易筆棟數',
-                '移轉層次': '樓層',
-                '建物型態': '建物型態',
-                '主要用途': '主要用途',
-                '建物移轉總面積平方公尺': '產權面積(房車)',
-                '建物現況格局-房': '房數',
-                '建物現況格局-廳': '廳數',
-                '建物現況格局-衛': '衛浴數',
-                '總價元': '交易總價',
-                '車位類別': '車位類別',
-                '車位移轉總面積平方公尺': '車位總面積',
-                '車位總價元': '車位總價',
-                '備註': '備註',
-                '主建物面積': '主建物面積',
-                '附屬建物面積': '附屬建物面積',
-                '陽台面積': '陽台面積'
-            },
-            // 預售交易主表 (a_lvr_land_b.csv)
-            'a_lvr_land_b.csv': {
-                '編號': '編號',
-                '鄉鎮市區': '行政區',
-                '交易標的': '交易標的', 
-                '土地位置建物門牌': '地址',
-                '交易年月日': '交易日',
-                '交易筆棟數': '交易筆棟數',
-                '移轉層次': '樓層',
-                '建物型態': '建物型態',
-                '主要用途': '主要用途',
-                '建物移轉總面積平方公尺': '產權面積(房車)',
-                '建物現況格局-房': '房數',
-                '建物現況格局-廳': '廳數',
-                '建物現況格局-衛': '衛浴數',
-                '總價元': '交易總價',
-                '車位類別': '車位類別',
-                '車位移轉總面積平方公尺': '車位總面積',
-                '車位總價元': '車位總價',
-                '備註': '備註',
-                '建案名稱': '建案名稱',
-                '棟及號': '戶別',
-                '解約情形': '解約情形'
-            },
-            // 租賃交易主表 (a_lvr_land_c.csv)
-            'a_lvr_land_c.csv': {
-                '編號': '編號',
-                '鄉鎮市區': '行政區',
-                '交易標的': '交易標的',
-                '土地位置建物門牌': '地址',
-                '租賃年月日': '交易日',
-                '租賃筆棟數': '交易筆棟數',
-                '租賃層次': '樓層',
-                '建物型態': '建物型態',
-                '主要用途': '主要用途',
-                '建物總面積平方公尺': '租賃面積',
-                '建物現況格局-房': '房數',
-                '建物現況格局-廳': '廳數',
-                '建物現況格局-衛': '衛浴數',
-                '總額元': '交易總價',
-                '車位類別': '車位類別',
-                '車位面積平方公尺': '車位總面積',
-                '車位總額元': '車位總價',
-                '備註': '備註',
-                '出租型態': '出租型態',
-                '租賃期間': '租賃期間',
-                '附屬設備': '附屬設備',
-                '租賃住宅服務': '租賃住宅服務'
-            },
-            // 建物交易附表
-            'a_lvr_land_a_build.csv': {
-                '編號': '編號',
-                '屋齡': '交易屋齡',
-                '主要建材': '結構',
-                '建築完成日期': '完工日',
-                '總層數': '總樓層',
-                '移轉情形': '移轉情形'
-            },
-            'a_lvr_land_c_build.csv': {
-                '編號': '編號',
-                '屋齡': '交易屋齡',
-                '主要建材': '結構',
-                '建築完成日期': '完工日',
-                '總層數': '總樓層',
-                '移轉情形': '移轉情形'
-            },
-            // 土地交易附表
-            'a_lvr_land_a_land.csv': {
-                '編號': '編號',
-                '土地位置': '地號(段)',
-                '地號': '地號',
-                '土地移轉面積平方公尺': '土地持分面積',
-                '權利人持分分母': '持分分母',
-                '權利人持分分子': '持分分子',
-                '使用分區或編定': '使用分區'
-            },
-            'a_lvr_land_b_land.csv': {
-                '編號': '編號',
-                '土地位置': '地號(段)',
-                '地號': '地號',
-                '土地移轉面積平方公尺': '土地持分面積',
-                '權利人持分分母': '持分分母',
-                '權利人持分分子': '持分分子',
-                '使用分區或編定': '使用分區'
-            },
-            'a_lvr_land_c_land.csv': {
-                '編號': '編號',
-                '土地位置': '地號(段)',
-                '地號': '地號',
-                '土地移轉面積平方公尺': '土地租賃面積',
-                '使用分區或編定': '使用分區'
-            },
-            // 車位交易附表
-            'a_lvr_land_a_park.csv': {
-                '編號': '編號',
-                '車位類別': '車位類別',
-                '車位價格': '車位價格',
-                '車位面積平方公尺': '車位面積',
-                '車位所在樓層': '車位樓層'
-            },
-            'a_lvr_land_b_park.csv': {
-                '編號': '編號',
-                '車位類別': '車位類別',
-                '車位價格': '車位價格',
-                '車位面積平方公尺': '車位面積',
-                '車位所在樓層': '車位樓層'
-            },
-            'a_lvr_land_c_park.csv': {
-                '編號': '編號',
-                '車位類別': '車位類別',
-                '車位價格': '車位價格',
-                '車位面積平方公尺': '車位面積',
-                '車位所在樓層': '車位樓層'
-            }
+        // --- 設定與常數 ---
+        const counties = { 'A': '臺北市', 'B': '臺中市', 'C': '基隆市', 'D': '臺南市', 'E': '高雄市', 'F': '新北市', 'G': '宜蘭縣', 'H': '桃園市', 'I': '嘉義市', 'J': '新竹縣', 'K': '苗栗縣', 'M': '南投縣', 'N': '彰化縣', 'O': '新竹市', 'P': '雲林縣', 'Q': '嘉義縣', 'T': '屏東縣', 'U': '花蓮縣', 'V': '臺東縣', 'W': '金門縣', 'X': '澎湖縣', 'Z': '連江縣' };
+        const tableTypes = { 'a': '中古交易主表', 'a_build': '中古-建物附表', 'a_land': '中古-土地附表', 'a_park': '中古-車位附表', 'b': '預售交易主表', 'b_land': '預售-土地附表', 'b_park': '預售-車位附表', 'c': '租賃交易主表', 'c_build': '租賃-建物附表', 'c_land': '租賃-土地附表', 'c_park': '租賃-車位附表' };
+        const columnMappings = {
+            'a': { '編號': '編號', '鄉鎮市區': '行政區', '交易標的': '交易標的', '土地位置建物門牌': '地址', '交易年月日': '交易日', '交易筆棟數': '交易筆棟數', '移轉層次': '樓層', '建物型態': '建物型態', '主要用途': '主要用途', '建物移轉總面積平方公尺': '產權面積_房車', '建物現況格局-房': '房數', '建物現況格局-廳': '廳數', '建物現況格局-衛': '衛浴數', '總價元': '交易總價', '車位類別': '車位類別', '車位移轉總面積平方公尺': '車位總面積', '車位總價元': '車位總價', '備註': '備註', '主建物面積': '主建物面積', '附屬建物面積': '附屬建物面積', '陽台面積': '陽台面積'},
+            'a_build': { '編號': '編號', '屋齡': '交易屋齡', '主要建材': '結構', '建築完成年月日': '完工日', '總層數': '總樓層', '移轉情形': '移轉情形' },
+            'a_land': { '編號': '編號', '土地位置': '地號_段', '地號': '地號', '土地移轉面積平方公尺': '土地持分面積', '非都市土地使用分區': '使用分區', '權利人持分分母': '持分分母', '權利人持分分子': '持分分子' },
+            'a_park': { '編號': '編號', '車位類別': '車位類別', '車位價格': '車位價格', '車位面積平方公尺': '車位面積', '車位所在樓層': '車位樓層' },
+            'b': { '編號': '編號', '鄉鎮市區': '行政區', '交易標的': '交易標的', '土地位置建物門牌': '地址', '交易年月日': '交易日', '交易筆棟數': '交易筆棟數', '移轉層次': '樓層', '建物型態': '建物型態', '主要用途': '主要用途', '建物移轉總面積平方公尺': '產權面積_房車', '建物現況格局-房': '房數', '建物現況格局-廳': '廳數', '建物現況格局-衛': '衛浴數', '總價元': '交易總價', '車位類別': '車位類別', '車位移轉總面積平方公尺': '車位總面積', '車位總價元': '車位總價', '備註': '備註', '建案名稱': '建案名稱', '棟及號': '戶別', '解約情形': '解約情形' },
+            'b_land': { '編號': '編號', '土地位置': '地號_段', '地號': '地號', '土地移轉面積平方公尺': '土地持分面積', '非都市土地使用分區': '使用分區', '權利人持分分母': '持分分母', '權利人持分分子': '持分分子' },
+            'b_park': { '編號': '編號', '車位類別': '車位類別', '車位價格': '車位價格', '車位面積平方公尺': '車位面積', '車位所在樓層': '車位樓層' },
+            'c': { '編號': '編號', '鄉鎮市區': '行政區', '交易標的': '交易標的', '土地位置建物門牌': '地址', '租賃年月日': '交易日', '租賃筆棟數': '交易筆棟數', '租賃層次': '樓層', '建物型態': '建物型態', '主要用途': '主要用途', '建物總面積平方公尺': '租賃面積', '建物現況格局-房': '房數', '建物現況格局-廳': '廳數', '建物現況格局-衛': '衛浴數', '總額元': '交易總價', '車位類別': '車位類別', '車位面積平方公尺': '車位總面積', '車位總額元': '車位總價', '備註': '備註', '出租型態': '出租型態', '租賃期間': '租賃期間', '附屬設備': '附屬設備', '租賃住宅服務': '租賃住宅服務' },
+            'c_build': { '編號': '編號', '屋齡': '交易屋齡', '主要建材': '結構', '建築完成年月日': '完工日', '總層數': '總樓層', '移轉情形': '移轉情形' },
+            'c_land': { '編號': '編號', '土地位置': '地號_段', '地號': '地號', '土地移轉面積平方公尺': '土地租賃面積', '非都市土地使用分區': '使用分區' },
+            'c_park': { '編號': '編號', '車位類別': '車位類別', '車位價格': '車位價格', '車位面積平方公尺': '車位面積', '車位所在樓層': '車位樓層' }
         };
+        
+        // --- 全域變數與 DOM 元素 ---
+        let supabase = null;
+        let parsedData = [];
+        const countySelect = document.getElementById('countySelect');
+        const tableTypeSelect = document.getElementById('tableTypeSelect');
+        const processButton = document.getElementById('processButton');
+        const uploadButton = document.getElementById('uploadButton');
+        const testConnectionButton = document.getElementById('testConnectionButton');
+        const statusDiv = document.getElementById('status');
+        const errorLogContainer = document.getElementById('errorLogContainer');
+        const errorLog = document.getElementById('errorLog');
 
-        // 根據檔案名稱決定使用哪個欄位對應
-        function getFieldMapping(fileName) {
-            return fieldMappings[fileName] || {};
+        // --- 函式定義 ---
+        
+        function initializeSelectors() {
+            Object.entries(counties).forEach(([code, name]) => {
+                const option = new Option(`${code} - ${name}`, code);
+                countySelect.add(option);
+            });
+            Object.entries(tableTypes).forEach(([type, name]) => {
+                const option = new Option(name, type);
+                tableTypeSelect.add(option);
+            });
         }
 
-        // DOM 元素
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const fileList = document.getElementById('fileList');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const progressContainer = document.getElementById('progressContainer');
-        const progressFill = document.getElementById('progressFill');
-        const progressText = document.getElementById('progressText');
-        const logContainer = document.getElementById('logContainer');
-        const logContent = document.getElementById('logContent');
-        const supabaseUrl = document.getElementById('supabaseUrl');
-        const supabaseKey = document.getElementById('supabaseKey');
+        function cleanNumber(value) {
+            if (typeof value !== 'string') return value;
+            const cleaned = value.replace(/,/g, '');
+            const num = parseFloat(cleaned);
+            return isNaN(num) ? null : num;
+        }
 
-        // 事件監聽器
-        uploadArea.addEventListener('click', () => fileInput.click());
-        uploadArea.addEventListener('dragover', handleDragOver);
-        uploadArea.addEventListener('drop', handleDrop);
-        uploadArea.addEventListener('dragleave', handleDragLeave);
-        fileInput.addEventListener('change', handleFileSelect);
-        uploadBtn.addEventListener('click', startUpload);
-        supabaseUrl.addEventListener('input', checkConfig);
-        supabaseKey.addEventListener('input', checkConfig);
+        function rocToDate(rocDateStr) {
+            if (!rocDateStr || typeof rocDateStr !== 'string' || rocDateStr.length < 7) return null;
+            try {
+                const year = parseInt(rocDateStr.substring(0, 3), 10) + 1911;
+                const month = rocDateStr.substring(3, 5);
+                const day = rocDateStr.substring(5, 7);
+                const date = new Date(`${year}-${month}-${day}`);
+                return isNaN(date.getTime()) ? null : date.toISOString().split('T')[0];
+            } catch (e) { return null; }
+        }
         
-        // 欄位選擇模式切換
-        document.querySelectorAll('input[name="fieldMode"]').forEach(radio => {
-            radio.addEventListener('change', showFieldSelection);
+        function processRow(row, mapping) {
+            const newRow = {};
+            for (const csvHeader in mapping) {
+                const dbColumn = mapping[csvHeader];
+                let value = row[csvHeader];
+
+                if (value === undefined || value === '') {
+                    newRow[dbColumn] = null;
+                    continue;
+                }
+                
+                if (dbColumn.includes('日')) {
+                    newRow[dbColumn] = rocToDate(value);
+                } else if (['交易總價', '車位總價', '房數', '廳數', '衛浴數', '持分分母', '持分分子', '交易屋齡', '車位價格'].includes(dbColumn)) {
+                    const parsedInt = parseInt(cleanNumber(value), 10);
+                    newRow[dbColumn] = isNaN(parsedInt) ? null : parsedInt;
+                } else if (dbColumn.includes('面積')) {
+                    newRow[dbColumn] = cleanNumber(value);
+                } else {
+                    newRow[dbColumn] = value;
+                }
+            }
+            return newRow;
+        }
+
+        function displayStatus(message, type = 'info') {
+            const colors = {
+                info: 'bg-blue-100 text-blue-700',
+                success: 'bg-green-100 text-green-700',
+                error: 'bg-red-100 text-red-700'
+            };
+            statusDiv.innerHTML = message;
+            statusDiv.className = `mt-6 p-4 rounded-lg text-sm ${colors[type]}`;
+            statusDiv.classList.remove('hidden');
+        }
+
+        function logError(error, chunk) {
+            errorLogContainer.classList.remove('hidden');
+            const errorEntry = document.createElement('pre');
+            const errorTime = new Date().toLocaleTimeString();
+            let errorMessage = `[${errorTime}] 上傳失敗\n`;
+            errorMessage += `錯誤訊息: ${error.message}\n`;
+            if (error.details) errorMessage += `詳細資訊: ${error.details}\n`;
+            if (error.hint) errorMessage += `提示: ${error.hint}\n`;
+            errorMessage += `--- 發生錯誤的資料區塊 (部分) ---\n`;
+            errorMessage += JSON.stringify(chunk.slice(0, 2), null, 2); // 只顯示區塊前兩筆
+            errorMessage += `\n---------------------------------------\n`;
+            errorEntry.textContent = errorMessage;
+            errorLog.appendChild(errorEntry);
+            errorLog.scrollTop = errorLog.scrollHeight;
+        }
+
+        function renderPreview(data, headers) {
+            const container = document.getElementById('tableContainer');
+            if (data.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-4">沒有可預覽的資料。</p>';
+                return;
+            }
+            const table = document.createElement('table');
+            const thead = table.createTHead();
+            const tbody = table.createTBody();
+            const headerRow = thead.insertRow();
+            headers.forEach(headerText => {
+                const th = document.createElement('th');
+                th.textContent = headerText;
+                headerRow.appendChild(th);
+            });
+            data.slice(0, 50).forEach(rowData => {
+                const row = tbody.insertRow();
+                headers.forEach(header => {
+                    const cell = row.insertCell();
+                    cell.textContent = rowData[header] === null || rowData[header] === undefined ? '' : rowData[header];
+                });
+            });
+            container.innerHTML = '';
+            container.appendChild(table);
+            document.getElementById('previewContainer').classList.remove('hidden');
+            document.getElementById('previewContainer').classList.add('fade-in');
+        }
+        
+        async function testConnection() {
+            const supabaseUrl = document.getElementById('supabaseUrl').value;
+            const supabaseKey = document.getElementById('supabaseKey').value;
+            if (!supabaseUrl || !supabaseKey) {
+                displayStatus('請填寫完整的 Supabase URL 和 Service Role Key。', 'error');
+                return;
+            }
+            displayStatus('正在測試連線...', 'info');
+            try {
+                const testSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+                // 執行一個輕量級的查詢來驗證連線和權限
+                const { error } = await testSupabase.from('county_codes').select('code', { count: 'exact', head: true });
+                if (error) throw error;
+                displayStatus('連線成功！可以開始上傳資料。', 'success');
+            } catch (error) {
+                displayStatus(`連線失敗: ${error.message}`, 'error');
+            }
+        }
+
+        // --- 事件監聽器 ---
+        
+        testConnectionButton.addEventListener('click', testConnection);
+        
+        processButton.addEventListener('click', () => {
+            const file = document.getElementById('csvFile').files[0];
+            if (!file) {
+                displayStatus('請選擇一個 CSV 檔案。', 'error');
+                return;
+            }
+            displayStatus('正在解析 CSV 檔案...', 'info');
+            document.getElementById('previewContainer').classList.add('hidden');
+            errorLogContainer.classList.add('hidden');
+            errorLog.innerHTML = ''; // 清空舊日誌
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: (results) => {
+                    if (results.errors.length > 0) {
+                        displayStatus(`解析 CSV 時發生錯誤: ${results.errors[0].message}`, 'error');
+                        return;
+                    }
+                    const mapping = columnMappings[tableTypeSelect.value];
+                    if (!mapping) {
+                        displayStatus('找不到對應的資料表欄位映對規則。', 'error');
+                        return;
+                    }
+                    parsedData = results.data.map(row => processRow(row, mapping));
+                    if (parsedData.length > 0) {
+                        const headers = Object.keys(parsedData[0]);
+                        renderPreview(parsedData, headers);
+                        displayStatus(`成功解析 ${parsedData.length} 筆資料。請預覽並確認後上傳。`, 'info');
+                    } else {
+                        displayStatus('解析完成，但沒有資料。請檢查 CSV 內容。', 'error');
+                    }
+                }
+            });
         });
 
-        function handleDragOver(e) {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        }
-
-        function handleDragLeave(e) {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-        }
-
-        function handleDrop(e) {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            const files = Array.from(e.dataTransfer.files).filter(file => file.name.endsWith('.csv'));
-            addFiles(files);
-        }
-
-        function handleFileSelect(e) {
-            const files = Array.from(e.target.files);
-            addFiles(files);
-        }
-
-        function addFiles(files) {
-            files.forEach(file => {
-                if (!selectedFiles.find(f => f.name === file.name)) {
-                    selectedFiles.push(file);
-                }
-            });
-            renderFileList();
-            checkConfig();
-        }
-
-        function removeFile(fileName) {
-            selectedFiles = selectedFiles.filter(f => f.name !== fileName);
-            renderFileList();
-            checkConfig();
-        }
-
-        function renderFileList() {
-            fileList.innerHTML = '';
-            selectedFiles.forEach(file => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                
-                const fileInfo = document.createElement('div');
-                fileInfo.className = 'file-info';
-                
-                const fileIcon = document.createElement('div');
-                fileIcon.className = 'file-icon';
-                fileIcon.textContent = '📄';
-                
-                const fileDetails = document.createElement('div');
-                fileDetails.className = 'file-details';
-                fileDetails.innerHTML = `
-                    <h4>${file.name}</h4>
-                    <p>${(file.size / 1024).toFixed(1)} KB</p>
-                `;
-                
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'remove-btn';
-                removeBtn.textContent = '移除';
-                removeBtn.onclick = () => removeFile(file.name);
-                
-                fileInfo.appendChild(fileIcon);
-                fileInfo.appendChild(fileDetails);
-                fileItem.appendChild(fileInfo);
-                fileItem.appendChild(removeBtn);
-                fileList.appendChild(fileItem);
-            });
-            
-            // 更新欄位選擇框
-            updateFieldCheckboxes();
-        }
-
-        function checkConfig() {
-            const hasUrl = supabaseUrl.value.trim();
-            const hasKey = supabaseKey.value.trim();
-            const hasFiles = selectedFiles.length > 0;
-            
-            uploadBtn.disabled = !(hasUrl && hasKey && hasFiles);
-            
-            if (hasUrl && hasKey) {
-                try {
-                    supabase = window.supabase.createClient(supabaseUrl.value.trim(), supabaseKey.value.trim());
-                } catch (error) {
-                    log('設定錯誤: ' + error.message, 'error');
-                }
+        uploadButton.addEventListener('click', async () => {
+            const supabaseUrl = document.getElementById('supabaseUrl').value;
+            const supabaseKey = document.getElementById('supabaseKey').value;
+            if (!supabaseUrl || !supabaseKey) {
+                displayStatus('請填寫完整的 Supabase URL 和 Service Role Key。', 'error');
+                return;
             }
-        }
-
-        function log(message, type = 'info') {
-            const logItem = document.createElement('div');
-            logItem.className = `log-item log-${type}`;
-            logItem.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
-            logContent.appendChild(logItem);
-            logContainer.scrollTop = logContainer.scrollHeight;
-            
-            if (logContainer.style.display === 'none') {
-                logContainer.style.display = 'block';
-            }
-        }
-
-        function updateProgress(current, total, message) {
-            const percentage = (current / total) * 100;
-            progressFill.style.width = percentage + '%';
-            progressText.textContent = message;
-        }
-
-        async function startUpload() {
-            if (!supabase) {
-                log('請先設定 Supabase 連線資訊', 'error');
+            if (parsedData.length === 0) {
+                displayStatus('沒有可上傳的資料。', 'error');
                 return;
             }
 
-            uploadBtn.disabled = true;
-            progressContainer.style.display = 'block';
-            logContent.innerHTML = '';
-            
-            // 將檔案分類：主表和附表
-            const mainTables = selectedFiles.filter(file => 
-                file.name.match(/a_lvr_land_[abc]\.csv$/)
-            );
-            const subTables = selectedFiles.filter(file => 
-                file.name.match(/a_lvr_land_[abc]_(build|land|park)\.csv$/)
-            );
-            
-            const totalFiles = selectedFiles.length;
-            let processedFiles = 0;
-
-            log('開始上傳程序...', 'info');
-            log(`檔案分類: ${mainTables.length}個主表, ${subTables.length}個附表`, 'info');
-
             try {
-                // 第一階段：上傳主表
-                if (mainTables.length > 0) {
-                    log('📋 第一階段：上傳主表', 'info');
-                    for (const file of mainTables) {
-                        updateProgress(processedFiles, totalFiles, `上傳主表: ${file.name}`);
-                        log(`處理主表: ${file.name}`, 'info');
-                        
-                        await processFile(file);
-                        processedFiles++;
-                        
-                        log(`✅ 主表 ${file.name} 上傳完成`, 'success');
-                    }
-                    log('🎉 所有主表上傳完成！', 'success');
-                }
-
-                // 第二階段：上傳附表
-                if (subTables.length > 0) {
-                    log('📎 第二階段：上傳附表', 'info');
-                    for (const file of subTables) {
-                        updateProgress(processedFiles, totalFiles, `上傳附表: ${file.name}`);
-                        log(`處理附表: ${file.name}`, 'info');
-                        
-                        await processFile(file);
-                        processedFiles++;
-                        
-                        log(`✅ 附表 ${file.name} 上傳完成`, 'success');
-                    }
-                    log('🎉 所有附表上傳完成！', 'success');
-                }
-
-                updateProgress(totalFiles, totalFiles, '所有檔案處理完成！');
-                log('🎊 上傳程序完成！', 'success');
-                
+                supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
             } catch (error) {
-                log(`❌ 上傳過程發生錯誤: ${error.message}`, 'error');
-            } finally {
-                uploadBtn.disabled = false;
+                displayStatus(`Supabase 連線失敗: ${error.message}`, 'error');
+                return;
             }
-        }
+            
+            const countyCode = countySelect.value.toLowerCase();
+            const tableSuffix = tableTypeSelect.value;
+            const tableName = `${countyCode}_lvr_land_${tableSuffix}`;
+            
+            document.getElementById('uploadButtonText').textContent = '上傳中...';
+            document.getElementById('uploadLoader').classList.remove('hidden');
+            uploadButton.disabled = true;
+            errorLog.innerHTML = ''; // 清空舊日誌
+            errorLogContainer.classList.add('hidden');
 
-        async function processFile(file) {
-            return new Promise((resolve, reject) => {
-                Papa.parse(file, {
-                    header: true,
-                    skipEmptyLines: true,
-                    complete: async (results) => {
-                        try {
-                            const tableName = getTableName(file.name);
-                            const fieldMapping = getFieldMapping(file.name);
-                            const fieldMode = document.querySelector('input[name="fieldMode"]:checked').value;
-                            
-                            log(`目標表格: ${tableName}`, 'info');
+            const chunkSize = 1000;
+            let insertedCount = 0;
+            let errorCount = 0;
 
-                            const transformedData = results.data.map(row => {
-                                const newRow = {};
-                                
-                                if (fieldMode === 'selected') {
-                                    // 只上傳選中的欄位
-                                    Object.entries(fieldMapping).forEach(([csvField, dbField]) => {
-                                        const checkbox = document.getElementById(`field_${file.name}_${csvField}`);
-                                        if (checkbox && checkbox.checked) {
-                                            let value = row[csvField];
-                                            value = transformValue(value, csvField);
-                                            newRow[dbField] = value;
-                                        }
-                                    });
-                                } else {
-                                    // 上傳所有對應欄位
-                                    if (Object.keys(fieldMapping).length > 0) {
-                                        Object.entries(fieldMapping).forEach(([csvField, dbField]) => {
-                                            let value = row[csvField];
-                                            value = transformValue(value, csvField);
-                                            newRow[dbField] = value;
-                                        });
-                                    } else {
-                                        // 沒有對應設定，直接複製所有欄位
-                                        Object.keys(row).forEach(key => {
-                                            newRow[key] = row[key];
-                                        });
-                                    }
-                                }
-                                
-                                return newRow;
-                            });
+            for (let i = 0; i < parsedData.length; i += chunkSize) {
+                const chunk = parsedData.slice(i, i + chunkSize);
+                displayStatus(`正在上傳 ${i + 1} - ${i + chunk.length} 筆資料... (共 ${parsedData.length} 筆)`, 'info');
+                const { error } = await supabase.from(tableName).insert(chunk, { upsert: true });
 
-                            // 批次上傳資料
-                            const batchSize = 1000;
-                            for (let i = 0; i < transformedData.length; i += batchSize) {
-                                const batch = transformedData.slice(i, i + batchSize);
-                                
-                                const { error } = await supabase
-                                    .from(tableName)
-                                    .insert(batch);
-                                
-                                if (error) {
-                                    throw error;
-                                }
-                                
-                                log(`${tableName}: 已上傳 ${Math.min(i + batchSize, transformedData.length)}/${transformedData.length} 筆資料`, 'info');
-                            }
-                            
-                            resolve();
-                        } catch (error) {
-                            reject(error);
-                        }
-                    },
-                    error: (error) => {
-                        reject(new Error(`CSV 解析錯誤: ${error.message}`));
-                    }
-                });
-            });
-        }
-
-        // 資料轉換函數
-        function transformValue(value, csvField) {
-            if (value !== undefined && value !== null && value !== '') {
-                // 數字欄位轉換
-                if (csvField.includes('房') || csvField.includes('廳') || csvField.includes('衛') || 
-                    csvField.includes('價') || csvField.includes('屋齡') || csvField.includes('分母') || csvField.includes('分子')) {
-                    const numValue = parseFloat(value);
-                    return isNaN(numValue) ? null : numValue;
-                }
-                // 日期欄位轉換
-                else if (csvField.includes('日期') || csvField.includes('年月日')) {
-                    if (value && value.length >= 7) {
-                        try {
-                            // 轉換 1130101 格式為 2024-01-01
-                            const year = parseInt(value.substring(0, 3)) + 1911;
-                            const month = value.substring(3, 5);
-                            const day = value.substring(5, 7);
-                            return `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
-                        } catch (e) {
-                            // 如果轉換失敗，保持原值
-                            return value;
-                        }
-                    }
+                if (error) {
+                    errorCount++;
+                    logError(error, chunk);
+                } else {
+                    insertedCount += chunk.length;
                 }
             }
-            return value;
-        }價') || csvField.includes('屋齡') || csvField.includes('分母') || csvField.includes('分子')) {
-                                                const numValue = parseFloat(value);
-                                                value = isNaN(numValue) ? null : numValue;
-                                            }
-                                            // 日期欄位轉換
-                                            else if (csvField.includes('日期') || csvField.includes('年月日')) {
-                                                if (value && value.length >= 7) {
-                                                    try {
-                                                        // 轉換 1130101 格式為 2024-01-01
-                                                        const year = parseInt(value.substring(0, 3)) + 1911;
-                                                        const month = value.substring(3, 5);
-                                                        const day = value.substring(5, 7);
-                                                        value = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
-                                                    } catch (e) {
-                                                        // 如果轉換失敗，保持原值
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        
-                                        newRow[dbField] = value;
-                                    }
-                                } else {
-                                    // 沒有特定對應設定，直接複製所有欄位
-                                    Object.keys(row).forEach(key => {
-                                        newRow[key] = row[key];
-                                    });
-                                }
-                                
-                                return newRow;
-                            });
 
-                            // 批次上傳資料
-                            const batchSize = 1000;
-                            for (let i = 0; i < transformedData.length; i += batchSize) {
-                                const batch = transformedData.slice(i, i + batchSize);
-                                
-                                const { error } = await supabase
-                                    .from(tableName)
-                                    .insert(batch);
-                                
-                                if (error) {
-                                    throw error;
-                                }
-                                
-                                log(`${tableName}: 已上傳 ${Math.min(i + batchSize, transformedData.length)}/${transformedData.length} 筆資料`, 'info');
-                            }
-                            
-                            resolve();
-                        } catch (error) {
-                            reject(error);
-                        }
-                    },
-                    error: (error) => {
-                        reject(new Error(`CSV 解析錯誤: ${error.message}`));
-                    }
-                });
-            });
-        }
+            if (errorCount > 0) {
+                 displayStatus(`上傳完成，但有 ${errorCount} 個資料區塊失敗。成功上傳 ${insertedCount} 筆。請檢查下方的錯誤日誌。`, 'error');
+            } else {
+                 displayStatus(`成功！總共 ${insertedCount} 筆資料已上傳至表格 ${tableName}。`, 'success');
+            }
+
+            document.getElementById('uploadButtonText').textContent = '上傳至 Supabase';
+            document.getElementById('uploadLoader').classList.add('hidden');
+            uploadButton.disabled = false;
+        });
+
+        // --- 初始化 ---
+        window.onload = initializeSelectors;
     </script>
 </body>
 </html>
