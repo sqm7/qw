@@ -15,8 +15,8 @@
         th, td { border-bottom: 1px solid #e5e7eb; padding: 0.75rem 1rem; text-align: left; font-size: 0.875rem; white-space: nowrap; }
         thead th { background-color: #f9fafb; position: sticky; top: 0; z-index: 10; font-weight: 600; color: #4b5563; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
-        #errorLog, #fileList { background-color: #111827; color: #d1d5db; font-family: monospace; padding: 1rem; border-radius: 0.5rem; max-height: 300px; overflow-y: auto; }
-        #errorLog pre, #fileList div, #status div { white-space: pre-wrap; word-break: break-all; margin-bottom: 0.5rem; }
+        #errorLog, #fileList, #status { background-color: #111827; color: #d1d5db; font-family: monospace; padding: 1rem; border-radius: 0.5rem; max-height: 400px; overflow-y: auto; }
+        #errorLog pre, #fileList div, #status div { white-space: pre-wrap; word-break: break-all; margin-bottom: 0.5rem; line-height: 1.5; }
         .progress-bar { background-color: #e5e7eb; border-radius: 9999px; overflow: hidden; }
         .progress-bar-inner { background-color: #3b82f6; height: 100%; transition: width 0.3s ease-in-out; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -74,7 +74,11 @@
         </div>
 
         <!-- 狀態與日誌 -->
-        <div id="status" class="mt-6 p-4 bg-gray-50 rounded-lg text-sm text-gray-600 hidden"></div>
+        <div id="statusContainer" class="mt-6 hidden">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2">執行日誌</h3>
+            <div id="status"></div>
+        </div>
+
         <div id="errorLogContainer" class="mt-6 hidden">
             <h3 class="text-lg font-semibold text-red-600 mb-2">錯誤日誌</h3>
             <div id="errorLog"></div>
@@ -100,12 +104,14 @@
         
         let supabase = null;
         let allFiles = [];
-        let processedMainIds = new Set(); // [新增] 用於儲存已處理的主表編號
+        let processedMainIds = new Set();
+        let summary = {};
 
         const DOM = {
             selectFoldersButton: document.getElementById('selectFoldersButton'),
             startUploadButton: document.getElementById('startUploadButton'),
             testConnectionButton: document.getElementById('testConnectionButton'),
+            statusContainer: document.getElementById('statusContainer'),
             statusDiv: document.getElementById('status'),
             errorLogContainer: document.getElementById('errorLogContainer'),
             errorLog: document.getElementById('errorLog'),
@@ -161,18 +167,19 @@
         }
 
         function displayStatus(message, type = 'info') {
-            const colors = { info: 'bg-blue-100 text-blue-700', success: 'bg-green-100 text-green-700', error: 'bg-red-100 text-red-700', warning: 'bg-yellow-100 text-yellow-700' };
-            DOM.statusDiv.innerHTML = `<div>${message}</div>`;
-            DOM.statusDiv.className = `mt-6 p-4 rounded-lg text-sm ${colors[type]}`;
-            DOM.statusDiv.classList.remove('hidden');
+            const colors = { info: 'text-blue-400', success: 'text-green-400', error: 'text-red-400', warning: 'text-yellow-400' };
+            DOM.statusDiv.innerHTML = `<div class="${colors[type]}">${message}</div>`;
+            DOM.statusContainer.classList.remove('hidden');
         }
 
         function appendStatus(message) {
             DOM.statusDiv.innerHTML += `<div>${message}</div>`;
+            DOM.statusDiv.scrollTop = DOM.statusDiv.scrollHeight;
         }
 
         function logError(fileName, error, chunk) {
             DOM.errorLogContainer.classList.remove('hidden');
+            summary.errors++;
             const errorEntry = document.createElement('pre');
             const errorTime = new Date().toLocaleTimeString();
             errorEntry.textContent = `[${errorTime}] 檔案 ${fileName} 上傳失敗\n錯誤訊息: ${error.message}\n詳細資訊: ${error.details || 'N/A'}\n提示: ${error.hint || 'N/A'}\n--- 發生錯誤的資料區塊 (部分) ---\n${JSON.stringify(chunk.slice(0, 2), null, 2)}\n---------------------------------------\n`;
@@ -222,7 +229,7 @@
                 }
                 DOM.fileList.innerHTML = `<div>找到 ${allFiles.length} 個有效檔案。</div>`;
                 DOM.uploadArea.classList.remove('hidden');
-                displayStatus(`掃描完成！準備好上傳 ${allFiles.length} 個檔案。`, 'success');
+                displayStatus(`掃描完成！準備好上傳 ${allFiles.length} 個檔案。`, 'info');
             } catch (err) {
                 if (err.name !== 'AbortError') displayStatus(`選擇資料夾時發生錯誤: ${err.message}`, 'error');
             }
@@ -256,8 +263,10 @@
             DOM.selectFoldersButton.disabled = true;
             DOM.errorLog.innerHTML = '';
             DOM.errorLogContainer.classList.add('hidden');
+            summary = { new: 0, updated: 0, identical: 0, subAdded: 0, errors: 0 };
+            processedMainIds.clear();
+
             displayStatus('開始上傳流程...', 'info');
-            processedMainIds.clear(); // [新增] 為每次批次上傳重置紀錄
 
             const mainTables = allFiles.filter(f => f.isMain);
             const subTables = allFiles.filter(f => !f.isMain);
@@ -265,7 +274,15 @@
             await processPhase(mainTables, '階段 1: 主表 (智慧更新)', true);
             await processPhase(subTables, '階段 2: 附表 (智慧連動)', false);
             
-            displayStatus('所有檔案上傳完成！', 'success');
+            appendStatus('<div class="text-green-400 mt-4">--- 所有檔案處理完成！ ---</div>');
+            appendStatus(`
+                <div class="mt-2"><b>總結報告:</b></div>
+                <div>  - 新增主表紀錄: ${summary.new}</div>
+                <div>  - 更新主表紀錄: ${summary.updated}</div>
+                <div>  - 跳過相同主表: ${summary.identical}</div>
+                <div>  - 新增附表紀錄: ${summary.subAdded}</div>
+                <div>  - 失敗/錯誤檔案: ${summary.errors}</div>
+            `);
             DOM.selectFoldersButton.disabled = false;
         }
         
@@ -274,6 +291,7 @@
                 appendStatus(`> 在 ${phaseName} 中沒有需要上傳的檔案，跳過此階段。`);
                 return;
              }
+            appendStatus(`<div class="text-yellow-400 mt-2">--- ${phaseName} ---</div>`);
             let processedCount = 0;
             for (const fileInfo of files) {
                 updateProgress(processedCount, files.length, phaseName);
@@ -288,22 +306,24 @@
             }
         }
         
-        // [更新] 附表上傳邏輯
         async function uploadSingleFile(fileInfo) {
             try {
                 const tableName = `${fileInfo.countyCode}_lvr_land_${fileInfo.tableType}`;
                 const allSubData = await parseFile(fileInfo);
-                if (!allSubData || allSubData.length === 0) return;
+                if (!allSubData || allSubData.length === 0) {
+                    appendStatus(`> ${fileInfo.name}: 檔案為空或解析失敗，已跳過。`);
+                    return;
+                };
                 
-                // [新增] 只篩選出主表有處理過的紀錄
                 const dataToUpload = allSubData.filter(row => processedMainIds.has(row['編號']));
 
                 if (dataToUpload.length > 0) {
                     const { error } = await supabase.from(tableName).insert(dataToUpload);
                     if (error) throw error;
+                    summary.subAdded += dataToUpload.length;
                     appendStatus(`> ${fileInfo.name}: 成功新增 ${dataToUpload.length} 筆關聯的附表紀錄。`);
                 } else {
-                    appendStatus(`> ${fileInfo.name}: 沒有需要新增的附表紀錄 (對應的主表無變更)。`);
+                    appendStatus(`> ${fileInfo.name}: 無對應的主表變更，已跳過。`);
                 }
 
             } catch (error) {
@@ -311,12 +331,14 @@
             }
         }
 
-        // [更新] 主表上傳邏輯
         async function uploadMainFileWithSmartUpdate(fileInfo) {
             try {
                 const tableName = `${fileInfo.countyCode}_lvr_land_${fileInfo.tableType}`;
                 const processedData = await parseFile(fileInfo);
-                if (!processedData || processedData.length === 0) return;
+                if (!processedData || processedData.length === 0) {
+                    appendStatus(`> ${fileInfo.name}: 檔案為空或解析失敗，已跳過。`);
+                    return;
+                }
                 
                 const chunkSize = 500;
                 for (let i = 0; i < processedData.length; i += chunkSize) {
@@ -344,20 +366,23 @@
                         }
                     }
                 
-                    appendStatus(`> ${fileInfo.name} (區塊 ${i/chunkSize + 1}): 比對完成。新: ${newData.length}, 更新: ${updatedData.length}, 相同: ${identicalCount}。`);
+                    appendStatus(`>> ${fileInfo.name} (區塊 ${Math.floor(i/chunkSize) + 1}): 新: ${newData.length}, 更新: ${updatedData.length}, 相同: ${identicalCount}。`);
+                    summary.new += newData.length;
+                    summary.updated += updatedData.length;
+                    summary.identical += identicalCount;
 
                     const idsToProcess = [...newData.map(r => r['編號']), ...updatedData.map(r => r['編號'])];
-                    idsToProcess.forEach(id => processedMainIds.add(id)); // [新增] 記錄被處理的編號
+                    idsToProcess.forEach(id => processedMainIds.add(id));
 
                     if (idsToDelete.length > 0) {
-                        appendStatus(`> ${fileInfo.name}: 正在刪除 ${idsToDelete.length} 筆舊紀錄以進行更新...`);
+                        appendStatus(`>>> 正在刪除 ${idsToDelete.length} 筆舊紀錄...`);
                         const { error: deleteError } = await supabase.from(tableName).delete().in('編號', idsToDelete);
                         if (deleteError) throw deleteError;
                     }
 
                     const dataToUpload = [...newData, ...updatedData];
                     if (dataToUpload.length > 0) {
-                        appendStatus(`> ${fileInfo.name}: 正在上傳 ${dataToUpload.length} 筆新/更新的紀錄...`);
+                        appendStatus(`>>> 正在上傳 ${dataToUpload.length} 筆新/更新的紀錄...`);
                         const { error: insertError } = await supabase.from(tableName).insert(dataToUpload);
                         if (insertError) throw insertError;
                     }
