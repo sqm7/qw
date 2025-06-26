@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>不動產批次上傳工具 (v4 - 資料夾模式)</title>
+    <title>不動產批次上傳工具 (v4.1 - 資料夾模式)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -27,7 +27,7 @@
     <div class="max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
         <div class="mb-6">
             <h1 class="text-2xl md:text-3xl font-bold text-gray-800">不動產批次上傳工具 (資料夾模式)</h1>
-            <p class="text-gray-500 mt-2">請選擇包含所有縣市CSV檔案的資料夾。系統會自動偵測、排序並分階段上傳所有資料。</p>
+            <p class="text-gray-500 mt-2">請選擇一個包含所有季/月份資料夾的「總資料夾」。系統將自動掃描並上傳所有找到的檔案。</p>
         </div>
 
         <!-- Step 1: Supabase 連線資訊 -->
@@ -51,7 +51,7 @@
         <!-- Step 2: 選擇資料夾 -->
         <div class="mb-6">
             <h2 class="text-xl font-semibold text-gray-700 mb-4">步驟 2: 選擇資料夾</h2>
-            <button id="selectFoldersButton" class="w-full bg-blue-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-blue-700 transition-all">選擇一個或多個資料夾</button>
+            <button id="selectFoldersButton" class="w-full bg-blue-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-blue-700 transition-all">選擇資料總管</button>
         </div>
         
         <!-- 檔案列表與上傳按鈕 -->
@@ -191,14 +191,12 @@
                 return;
             }
             try {
-                const dirHandles = await window.showDirectoryPicker({ multiple: true });
+                // [修正] showDirectoryPicker 一次只會返回一個資料夾句柄
+                const dirHandle = await window.showDirectoryPicker();
                 displayStatus('正在掃描資料夾...', 'info');
                 
-                let fileHandles = [];
-                for (const dirHandle of dirHandles) {
-                    const files = await scanDirectory(dirHandle);
-                    fileHandles.push(...files);
-                }
+                // [修正] 直接處理單一資料夾句柄，scanDirectory會遞歸掃描
+                const fileHandles = await scanDirectory(dirHandle);
                 
                 const fileRegex = /^([a-z])_lvr_land_([a-c](?:_build|_land|_park)?)\.csv$/i;
                 allFiles = fileHandles
