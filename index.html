@@ -903,8 +903,16 @@
 
         async function parseFile(fileInfo) {
             const file = await fileInfo.fileHandle.getFile();
+            // --- 【核心修正】 ---
+            // 新增 trimHeaders: true，讓程式能自動處理 CSV 欄位標頭前後多餘的空白
             const parseResult = await new Promise((resolve, reject) => {
-                Papa.parse(file, { header: true, skipEmptyLines: true, complete: resolve, error: reject });
+                Papa.parse(file, { 
+                    header: true, 
+                    skipEmptyLines: true, 
+                    trimHeaders: true, // <--- 修正點
+                    complete: resolve, 
+                    error: reject 
+                });
             });
             
             if (parseResult.errors.length > 0) {
