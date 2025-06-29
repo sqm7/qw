@@ -447,8 +447,6 @@
         // --- 設定與常數 ---
         const counties = { 'A': '臺北市', 'B': '臺中市', 'C': '基隆市', 'D': '臺南市', 'E': '高雄市', 'F': '新北市', 'G': '宜蘭縣', 'H': '桃園市', 'I': '嘉義市', 'J': '新竹縣', 'K': '苗栗縣', 'M': '南投縣', 'N': '彰化縣', 'O': '新竹市', 'P': '雲林縣', 'Q': '嘉義縣', 'T': '屏東縣', 'U': '花蓮縣', 'V': '臺東縣', 'W': '金門縣', 'X': '澎湖縣', 'Z': '連江縣' };
         
-        // --- 【修正】 ---
-        // 將 '建築完成日期' 的對應關係加回 a_build 和 c_build 中
         const columnMappings = {
             'a': { '編號': '編號', '鄉鎮市區': '行政區', '交易標的': '交易標的', '土地位置建物門牌': '地址', '交易年月日': '交易日', '交易筆棟數': '交易筆棟數', '移轉層次': '樓層', '建物型態': '建物型態', '主要用途': '主要用途', '建物移轉總面積平方公尺': '產權面積_房車', '建物現況格局-房': '房數', '建物現況格局-廳': '廳數', '建物現況格局-衛': '衛浴數', '總價元': '交易總價', '車位類別': '車位類別', '車位移轉總面積平方公尺': '車位總面積', '車位總價元': '車位總價', '備註': '備註', '主建物面積': '主建物面積', '附屬建物面積': '附屬建物面積', '陽台面積': '陽台面積'},
             'a_build': { 
@@ -456,7 +454,7 @@
                 '屋齡': '交易屋齡', 
                 '主要建材': '結構', 
                 '建築完成年月日': '完工日', 
-                '建築完成日期': '完工日', // 新增此行以支援新格式
+                '建築完成日期': '完工日',
                 '總層數': '總樓層', 
                 '移轉情形': '移轉情形' 
             },
@@ -471,7 +469,7 @@
                 '屋齡': '交易屋齡', 
                 '主要建材': '結構', 
                 '建築完成年月日': '完工日', 
-                '建築完成日期': '完工日', // 新增此行以支援新格式
+                '建築完成日期': '完工日',
                 '總層數': '總樓層', 
                 '移轉情形': '移轉情形' 
             },
@@ -521,16 +519,28 @@
             const num = parseFloat(cleaned);
             return isNaN(num) ? null : num;
         }
-
+        
         function rocToDate(rocDateStr) {
-            if (!rocDateStr || typeof rocDateStr !== 'string' || rocDateStr.length < 7) return null;
+            if (!rocDateStr || typeof rocDateStr !== 'string') return null;
+            
+            const cleanedDate = String(rocDateStr).replace(/\D/g, '');
+            
+            if (cleanedDate.length < 7) return null;
+            
             try {
-                const year = parseInt(rocDateStr.substring(0, 3), 10) + 1911;
-                const month = rocDateStr.substring(3, 5);
-                const day = rocDateStr.substring(5, 7);
+                const year = parseInt(cleanedDate.substring(0, 3), 10) + 1911;
+                const month = cleanedDate.substring(3, 5);
+                const day = cleanedDate.substring(5, 7);
                 const date = new Date(`${year}-${month}-${day}`);
-                return isNaN(date.getTime()) ? null : date.toISOString().split('T')[0];
-            } catch (e) { return null; }
+                
+                if (isNaN(date.getTime()) || date.getDate() !== parseInt(day, 10)) {
+                    return null;
+                }
+                
+                return date.toISOString().split('T')[0];
+            } catch (e) {
+                return null;
+            }
         }
         
         function processRow(row, mapping) {
@@ -621,7 +631,7 @@
             if (type === 'status') {
                 DOM.statusContainer.innerHTML = '<div class="text-gray-400">日誌已清除</div>';
             } else {
-                DOM.errorLogContainer.innerHTML = '<div class="text-gray-400">錯誤日誌已清除</div>';
+                DOM.errorLogContainer.innerHTML = '<div class="text-gray-400">無錯誤記錄</div>';
             }
         }
 
