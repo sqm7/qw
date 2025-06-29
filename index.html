@@ -523,21 +523,32 @@
         function rocToDate(rocDateStr) {
             if (!rocDateStr || typeof rocDateStr !== 'string') return null;
             
-            const cleanedDate = String(rocDateStr).replace(/\D/g, '');
-            
-            if (cleanedDate.length < 7) return null;
-            
+            // Regex to capture year (2 or 3 digits), month (1 or 2), and day (1 or 2)
+            // It handles formats like: "111/05/20", "111-05-20", "1110520", "111年5月20日", "59年3月25日"
+            const match = String(rocDateStr).match(/(\d{2,3})[\s\S]*?(\d{1,2})[\s\S]*?(\d{1,2})/);
+
+            if (!match) return null;
+
             try {
-                const year = parseInt(cleanedDate.substring(0, 3), 10) + 1911;
-                const month = cleanedDate.substring(3, 5);
-                const day = cleanedDate.substring(5, 7);
-                const date = new Date(`${year}-${month}-${day}`);
-                
-                if (isNaN(date.getTime()) || date.getDate() !== parseInt(day, 10)) {
+                const rocYear = parseInt(match[1], 10);
+                const month = parseInt(match[2], 10);
+                const day = parseInt(match[3], 10);
+
+                if (isNaN(rocYear) || isNaN(month) || isNaN(day)) return null;
+
+                const adYear = rocYear + 1911;
+
+                // Pad month and day with leading zero if needed
+                const monthStr = String(month).padStart(2, '0');
+                const dayStr = String(day).padStart(2, '0');
+
+                // Final check to ensure the constructed date is valid (e.g., handles Feb 30th)
+                const date = new Date(`${adYear}-${monthStr}-${dayStr}`);
+                if (isNaN(date.getTime()) || date.getDate() !== day) {
                     return null;
                 }
-                
-                return date.toISOString().split('T')[0];
+
+                return `${adYear}-${monthStr}-${dayStr}`;
             } catch (e) {
                 return null;
             }
@@ -903,13 +914,11 @@
 
         async function parseFile(fileInfo) {
             const file = await fileInfo.fileHandle.getFile();
-            // --- 【核心修正】 ---
-            // 新增 trimHeaders: true，讓程式能自動處理 CSV 欄位標頭前後多餘的空白
             const parseResult = await new Promise((resolve, reject) => {
                 Papa.parse(file, { 
                     header: true, 
                     skipEmptyLines: true, 
-                    trimHeaders: true, // <--- 修正點
+                    trimHeaders: true,
                     complete: resolve, 
                     error: reject 
                 });
