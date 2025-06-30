@@ -27,7 +27,7 @@
     </script>
     <style>
         body { 
-            font-family: 'Inter', sans-serif; 
+            font-family: 'Inter', sans-serif;
             background: linear-gradient(135deg, #1a1d29 0%, #252836 100%);
             min-height: 100vh;
         }
@@ -104,7 +104,6 @@
     </style>
 </head>
 <body class="bg-dark-bg text-white">
-    <!-- Header -->
     <div class="bg-dark-sidebar border-b border-gray-700 px-6 py-4">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-4">
@@ -113,16 +112,19 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                     </svg>
                 </div>
+    
                 <div>
                     <h1 class="text-xl font-bold text-white">不動產批次上傳工具</h1>
-                    <p class="text-sm text-gray-400">Real Estate Batch Upload Dashboard v4.5</p>
+                    <p class="text-sm text-gray-400">Real Estate Batch Upload Dashboard v4.6 (Floor Fix)</p>
                 </div>
             </div>
+          
             <div class="flex items-center space-x-4">
                 <div class="flex items-center space-x-2">
                     <span class="status-indicator" id="connectionStatus"></span>
                     <span class="text-sm text-gray-400" id="connectionText">未連線</span>
                 </div>
+               
                 <div class="text-right">
                     <div class="text-sm font-medium text-white" id="currentTime"></div>
                     <div class="text-xs text-gray-400">系統時間</div>
@@ -132,7 +134,7 @@
     </div>
 
     <div class="flex">
-        <!-- Sidebar -->
+       
         <div class="w-64 bg-dark-sidebar border-r border-gray-700 min-h-screen p-4">
             <nav class="space-y-2">
                 <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">主要功能</div>
@@ -156,15 +158,18 @@
                 </a>
                 
                 <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8">系統狀態</div>
+                
                 <div class="space-y-3">
                     <div class="flex items-center justify-between px-3 py-2">
                         <span class="text-sm text-gray-400">CPU 使用率</span>
                         <span class="text-sm text-cyan-accent">23%</span>
                     </div>
+ 
                     <div class="flex items-center justify-between px-3 py-2">
                         <span class="text-sm text-gray-400">記憶體</span>
                         <span class="text-sm text-purple-accent">1.2GB</span>
                     </div>
+    
                     <div class="flex items-center justify-between px-3 py-2">
                         <span class="text-sm text-gray-400">網路</span>
                         <span class="text-sm text-green-400">正常</span>
@@ -173,9 +178,7 @@
             </nav>
         </div>
 
-        <!-- Main Content -->
         <div class="flex-1 p-6">
-            <!-- Stats Cards -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                 <div class="glass-card rounded-xl p-6">
                     <div class="flex items-center justify-between">
@@ -201,6 +204,7 @@
                             <p class="text-sm text-gray-400">成功上傳</p>
                             <p class="text-2xl font-bold text-white" id="successCount">0</p>
                         </div>
+     
                         <div class="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
                             <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -247,9 +251,7 @@
                 </div>
             </div>
 
-            <!-- Main Dashboard Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Connection Setup -->
                 <div class="lg:col-span-2">
                     <div class="glass-card rounded-xl p-6 mb-6">
                         <div class="flex items-center justify-between mb-6">
@@ -289,7 +291,6 @@
                         </button>
                     </div>
 
-                    <!-- File Upload Section -->
                     <div class="glass-card rounded-xl p-6">
                         <h2 class="text-lg font-semibold text-white mb-6 flex items-center">
                             <svg class="w-5 h-5 text-cyan-accent mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -327,9 +328,7 @@
                     </div>
                 </div>
 
-                <!-- Progress & Status -->
                 <div class="space-y-6">
-                    <!-- Progress Ring -->
                     <div class="glass-card rounded-xl p-6">
                         <h3 class="text-lg font-semibold text-white mb-4">上傳進度</h3>
                         <div class="flex items-center justify-center">
@@ -353,7 +352,6 @@
                         </div>
                     </div>
 
-                    <!-- Quick Stats -->
                     <div class="glass-card rounded-xl p-6">
                         <h3 class="text-lg font-semibold text-white mb-4">即時統計</h3>
                         <div class="space-y-4">
@@ -376,7 +374,6 @@
                         </div>
                     </div>
 
-                    <!-- System Status -->
                     <div class="glass-card rounded-xl p-6">
                         <h3 class="text-lg font-semibold text-white mb-4">系統狀態</h3>
                         <div class="space-y-3">
@@ -406,9 +403,7 @@
                 </div>
             </div>
 
-            <!-- Logs Section -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-                <!-- Execution Log -->
                 <div class="glass-card rounded-xl p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-semibold text-white flex items-center">
@@ -424,7 +419,6 @@
                     </div>
                 </div>
 
-                <!-- Error Log -->
                 <div class="glass-card rounded-xl p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-semibold text-white flex items-center">
@@ -452,7 +446,6 @@
             'a_build': { '編號': '編號', '屋齡': '交易屋齡', '主要建材': '結構', '建築完成年月日': '完工日', '建築完成日期': '完工日', '總層數': '總樓層', '移轉情形': '移轉情形' },
             'a_land': { '編號': '編號', '土地位置': '地號_段', '地號': '地號', '土地移轉面積平方公尺': '土地持分面積', '使用分區或編定': '使用分區', '非都市土地使用分區': '使用分區', '權利人持分分母': '持分分母', '權利人持分分子': '持分分子' },
             'a_park': { '編號': '編號', '車位類別': '車位類別', '車位價格': '車位價格', '車位面積平方公尺': '車位面積', '車位所在樓層': '車位樓層' },
-            // 【核心修正】: 為預售屋(b)的對應規則中，新增「總樓層數」的對應
             'b': { '編號': '編號', '鄉鎮市區': '行政區', '交易標的': '交易標的', '土地位置建物門牌': '地址', '交易年月日': '交易日', '交易筆棟數': '交易筆棟數', '移轉層次': '樓層', '總層數': '總樓層', '總樓層數': '總樓層', '建物型態': '建物型態', '主要用途': '主要用途', '建物移轉總面積平方公尺': '產權面積_房車', '建物現況格局-房': '房數', '建物現況格局-廳': '廳數', '建物現況格局-衛': '衛浴數', '總價元': '交易總價', '車位類別': '車位類別', '車位移轉總面積平方公尺': '車位總面積', '車位總價元': '車位總價', '備註': '備註', '建案名稱': '建案名稱', '棟及號': '戶別', '解約情形': '解約情形' },
             'b_land': { '編號': '編號', '土地位置': '地號_段', '地號': '地號', '土地移轉面積平方公尺': '土地持分面積', '使用分區或編定': '使用分區', '非都市土地使用分區': '使用分區', '權利人持分分母': '持分分母', '權利人持分分子': '持分分子' },
             'b_park': { '編號': '編號', '車位類別': '車位類別', '車位價格': '車位價格', '車位面積平方公尺': '車位面積', '車位所在樓層': '車位樓層' },
@@ -461,13 +454,13 @@
             'c_land': { '編號': '編號', '土地位置': '地號_段', '地號': '地號', '土地移轉面積平方公尺': '土地租賃面積', '使用分區或編定': '使用分區', '非都市土地使用分區': '使用分區' },
             'c_park': { '編號': '編號', '車位類別': '車位類別', '車位價格': '車位價格', '車位面積平方公尺': '車位面積', '車位所在樓層': '車位樓層' }
         };
-        
+
         let supabase = null;
         let allFiles = [];
         let processedMainIds = new Set();
         let summary = { new: 0, updated: 0, identical: 0, subAdded: 0, errors: 0 };
         let isUploading = false;
-
+        
         // DOM Elements
         const DOM = {
             selectFoldersButton: document.getElementById('selectFoldersButton'),
@@ -496,7 +489,7 @@
             errorRecords: document.getElementById('errorRecords'),
             currentTime: document.getElementById('currentTime')
         };
-
+        
         // Utility Functions
         function cleanNumber(value) {
             if (typeof value !== 'string' && typeof value !== 'number') return null;
@@ -507,7 +500,6 @@
         
         function rocToDate(rocDateStr) {
             if (!rocDateStr || typeof rocDateStr !== 'string') return null;
-            
             const match = String(rocDateStr).match(/(\d{2,3})[^\d]*(\d{1,2})[^\d]*(\d{1,2})/);
 
             if (!match) return null;
@@ -518,12 +510,10 @@
                 const day = parseInt(match[3], 10);
 
                 if (isNaN(rocYear) || isNaN(month) || isNaN(day)) return null;
-
                 const adYear = rocYear + 1911;
 
                 const monthStr = String(month).padStart(2, '0');
                 const dayStr = String(day).padStart(2, '0');
-
                 const date = new Date(`${adYear}-${monthStr}-${dayStr}`);
                 if (isNaN(date.getTime()) || date.getDate() !== day) {
                     return null;
@@ -535,6 +525,39 @@
             }
         }
         
+        // --- 【新增的函式】 ---
+        function chineseFloorToNumber(floorStr) {
+            if (!floorStr || typeof floorStr !== 'string') return null;
+
+            const s = String(floorStr).replace(/層|樓/g, ''); // 移除"層"或"樓"字元
+            const charMap = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9 };
+            
+            if (!isNaN(s)) { // 如果本身就是數字 (例如 "12")
+                return parseInt(s, 10);
+            }
+            if (s === '地下') return -1; // 可根據需要處理地下層
+
+            // 處理中文數字
+            let total = 0;
+            const parts = s.split('十');
+
+            if (parts.length === 2) {
+                // 處理 "二十二", "十二", "二十"
+                const part0 = parts[0] ? (charMap[parts[0]] || 1) : 1;
+                const part1 = parts[1] ? (charMap[parts[1]] || 0) : 0;
+                total = part0 * 10 + part1;
+            } else if (s.includes('十')) {
+                 // 處理 "十"
+                total = 10;
+            } else {
+                // 處理個位數 "一" 到 "九"
+                total = charMap[s] || null;
+            }
+
+            return total > 0 ? total : null;
+        }
+
+        // --- 【修改的函式】 ---
         function processRow(row, mapping) {
             const newRow = {};
             const targetDbColumns = [...new Set(Object.values(mapping))];
@@ -544,7 +567,11 @@
                 if (dbColumn) {
                     let value = row[csvHeader];
                     if (value === undefined || value === '') continue;
-                    if (dbColumn.includes('日')) {
+
+                    // 【核心修正】: 在此新增對樓層的特別處理
+                    if (dbColumn === '樓層' || dbColumn === '總樓層') {
+                        newRow[dbColumn] = chineseFloorToNumber(value);
+                    } else if (dbColumn.includes('日')) {
                         newRow[dbColumn] = rocToDate(String(value));
                     } else if (['交易總價', '車位總價', '房數', '廳數', '衛浴數', '持分分母', '持分分子', '交易屋齡', '車位價格'].includes(dbColumn)) {
                         newRow[dbColumn] = parseInt(cleanNumber(value), 10);
@@ -562,10 +589,9 @@
         function isEqual(objA, objB, tableType) {
             const keysToCheck = Object.values(columnMappings[tableType]);
             for (const key of keysToCheck) {
-                if (key === 'id') continue; 
+                if (key === 'id') continue;
                 const valA = objA[key] ?? '';
                 const valB = objB[key] ?? '';
-
                 if (key.includes('面積')) {
                     if (Math.abs(cleanNumber(valA) - cleanNumber(valB)) > 0.001) return false;
                 } else {
@@ -580,7 +606,6 @@
             const statusClass = isConnected ? 'status-online' : 'status-offline';
             const statusText = isConnected ? '已連線' : '未連線';
             const dbStatusText = isConnected ? '正常' : '未連線';
-            
             DOM.connectionStatus.className = `status-indicator ${statusClass}`;
             DOM.connectionText.textContent = statusText;
             DOM.dbStatus.className = `status-indicator ${statusClass}`;
@@ -654,7 +679,6 @@
                 const dirHandle = await window.showDirectoryPicker();
                 const fileHandles = await scanDirectory(dirHandle);
                 const fileRegex = /^([a-z])_lvr_land_([a-c](?:_build|_land|_park)?)\.csv$/i;
-                
                 allFiles = fileHandles.map(handle => {
                     const match = handle.name.match(fileRegex);
                     return match ? { 
@@ -665,7 +689,6 @@
                         isMain: !match[2].includes('_') 
                     } : null;
                 }).filter(Boolean);
-                
                 if (allFiles.length === 0) {
                     addLog('在選擇的資料夾中沒有找到符合命名規則的檔案。', 'warning');
                     return;
@@ -684,7 +707,6 @@
                     `;
                     DOM.fileList.appendChild(fileItem);
                 });
-                
                 DOM.fileListContainer.classList.remove('hidden');
                 addLog(`掃描完成！找到 ${allFiles.length} 個有效檔案。`, 'success');
                 updateStats();
@@ -720,7 +742,6 @@
             }
             
             addLog('正在測試連線...', 'info');
-            
             try {
                 const testSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
                 const { error } = await testSupabase.from('county_codes').select('code', { count: 'exact', head: true });
@@ -753,12 +774,10 @@
             DOM.selectFoldersButton.disabled = true;
             
             summary = { new: 0, updated: 0, identical: 0, subAdded: 0, errors: 0 };
-            
             addLog('開始上傳流程...', 'info');
             
             const mainTables = allFiles.filter(f => f.isMain);
             const subTables = allFiles.filter(f => !f.isMain);
-            
             await processPhase(mainTables, '階段 1: 主表 (智慧更新)', true);
             await processPhase(subTables, '階段 2: 附表 (智慧連動)', false);
             
@@ -776,7 +795,6 @@
             }
             
             addLog(`--- ${phaseName} ---`, 'info');
-            
             for (let i = 0; i < files.length; i++) {
                 const fileInfo = files[i];
                 updateProgress(i, files.length, phaseName);
@@ -814,7 +832,6 @@
                         .from(tableName)
                         .select('*')
                         .in('編號', idsToCheck);
-                    
                     if (fetchError) throw fetchError;
 
                     const existingDataMap = new Map(existingData.map(item => [item['編號'], item]));
@@ -836,7 +853,6 @@
                     }
                     
                     addLog(`${fileInfo.name} (區塊 ${Math.floor(i/chunkSize) + 1}): 新增 ${newData.length}, 更新 ${updatedData.length}, 跳過 ${identicalCount}`, 'info');
-                    
                     summary.new += newData.length;
                     summary.updated += updatedData.length;
                     summary.identical += identicalCount;
@@ -877,7 +893,6 @@
                 }
 
                 const dataToUpload = allSubData.filter(row => processedMainIds.has(row['編號']));
-
                 if (dataToUpload.length > 0) {
                     const { error } = await supabase.from(tableName).insert(dataToUpload);
                     if (error) throw error;
@@ -904,7 +919,6 @@
                     error: reject 
                 });
             });
-            
             if (parseResult.errors.length > 0) {
                 throw new Error(`CSV 解析錯誤: ${parseResult.errors[0].message}`);
             }
@@ -937,7 +951,6 @@
         setInterval(updateTime, 1000);
         updateConnectionStatus(false);
         updateStats();
-
         // Add some demo data for visual effect
         setTimeout(() => {
             DOM.processingSpeed.textContent = '1,247';
