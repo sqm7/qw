@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>不動產批次上傳工具 - Dashboard v4.8 (Type Selector)</title>
+    <title>不動產批次上傳工具 - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -76,7 +76,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-white">不動產批次上傳工具</h1>
-                    <p class="text-sm text-gray-400">Real Estate Batch Upload Dashboard v4.8 (Type Selector)</p>
+                    <p class="text-sm text-gray-400">Real Estate Batch Upload Dashboard v4.9 (Clean Build)</p>
                 </div>
             </div>
             <div class="flex items-center space-x-4">
@@ -505,7 +505,6 @@
             DOM.selectFoldersButton.disabled = true;
             summary = { new: 0, updated: 0, identical: 0, subAdded: 0, errors: 0 };
             
-            // 【修改】取得選擇的上傳類型並篩選檔案
             const selectedType = document.querySelector('input[name="uploadType"]:checked').value;
             const typeNameMap = { 'all': '全選', 'a': '中古', 'b': '預售', 'c': '租賃' };
             
@@ -524,7 +523,6 @@
             
             addLog(`已選擇上傳類型: ${typeNameMap[selectedType]}。共 ${filesToUpload.length} 個檔案待處理。`, 'info');
             
-            // 【修改】使用篩選後的檔案列表
             const mainTables = filesToUpload.filter(f => f.isMain);
             const subTables = filesToUpload.filter(f => !f.isMain);
             
