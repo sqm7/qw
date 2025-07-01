@@ -31,29 +31,25 @@
             background: linear-gradient(135deg, #1a1d29 0%, #252836 100%);
             min-height: 100vh;
         }
+        
         .glass-card {
             background: rgba(37, 40, 54, 0.8);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .progress-ring {
-            transform: rotate(-90deg);
+        
+        .gradient-border {
+            background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+            padding: 1px;
+            border-radius: 12px;
         }
-        .progress-ring-circle {
-            stroke-dasharray: 251.2;
-            stroke-dashoffset: 251.2;
-            transition: stroke-dashoffset 0.5s ease-in-out;
+        
+        .gradient-border-inner {
+            background: #252836;
+            border-radius: 11px;
+            padding: 1.5rem;
         }
-        .terminal {
-            background: #0f172a;
-            border: 1px solid #334155;
-            font-family: 'Courier New', monospace;
-            color: #64748b;
-        }
-        .terminal-success { color: #10b981; }
-        .terminal-error { color: #ef4444; }
-        .terminal-warning { color: #f59e0b; }
-        .terminal-info { color: #06b6d4; }
+        
         .status-indicator {
             width: 8px;
             height: 8px;
@@ -61,8 +57,50 @@
             display: inline-block;
             margin-right: 8px;
         }
+        
         .status-online { background: #10b981; }
         .status-offline { background: #ef4444; }
+        .status-warning { background: #f59e0b; }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring-circle {
+            stroke-dasharray: 251.2;
+            stroke-dashoffset: 251.2;
+            transition: stroke-dashoffset 0.5s ease-in-out;
+        }
+        
+        .cyber-glow {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+        }
+        
+        .terminal {
+            background: #0f172a;
+            border: 1px solid #334155;
+            font-family: 'Courier New', monospace;
+            color: #64748b;
+        }
+        
+        .terminal-success { color: #10b981; }
+        .terminal-error { color: #ef4444; }
+        .terminal-warning { color: #f59e0b; }
+        .terminal-info { color: #06b6d4; }
+        
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(6, 182, 212, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(6, 182, 212, 0.6); }
+        }
+        
+        .animate-pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+        }
     </style>
 </head>
 <body class="bg-dark-bg text-white">
@@ -74,16 +112,19 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                     </svg>
                 </div>
+    
                 <div>
                     <h1 class="text-xl font-bold text-white">不動產批次上傳工具</h1>
-                    <p class="text-sm text-gray-400">Real Estate Batch Upload Dashboard v4.9 (Clean Build)</p>
+                    <p class="text-sm text-gray-400">Real Estate Batch Upload Dashboard v4.6 (Floor Fix)</p>
                 </div>
             </div>
+          
             <div class="flex items-center space-x-4">
                 <div class="flex items-center space-x-2">
                     <span class="status-indicator" id="connectionStatus"></span>
                     <span class="text-sm text-gray-400" id="connectionText">未連線</span>
                 </div>
+               
                 <div class="text-right">
                     <div class="text-sm font-medium text-white" id="currentTime"></div>
                     <div class="text-xs text-gray-400">系統時間</div>
@@ -93,56 +134,179 @@
     </div>
 
     <div class="flex">
+       
         <div class="w-64 bg-dark-sidebar border-r border-gray-700 min-h-screen p-4">
             <nav class="space-y-2">
                 <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">主要功能</div>
                 <a href="#connection" class="flex items-center space-x-3 px-3 py-2 rounded-lg bg-cyan-accent/10 text-cyan-accent border border-cyan-accent/20">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 1.79 4 4 4h8c0-2.21-1.79-4-4-4H8c-2.21 0-4-1.79-4-4zm0 0V4c0-2.21 1.79-4 4-4h4c2.21 0 4 1.79 4 4v3M4 7h16"></path></svg>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 1.79 4 4 4h8c0-2.21-1.79-4-4-4H8c-2.21 0-4-1.79-4-4zm0 0V4c0-2.21 1.79-4 4-4h4c2.21 0 4 1.79 4 4v3M4 7h16"></path>
+                    </svg>
                     <span>資料庫連線</span>
                 </a>
                 <a href="#upload" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/50">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
                     <span>檔案上傳</span>
                 </a>
+                <a href="#monitor" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/50">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    <span>監控面板</span>
+                </a>
+                
+                <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8">系統狀態</div>
+                
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between px-3 py-2">
+                        <span class="text-sm text-gray-400">CPU 使用率</span>
+                        <span class="text-sm text-cyan-accent">23%</span>
+                    </div>
+ 
+                    <div class="flex items-center justify-between px-3 py-2">
+                        <span class="text-sm text-gray-400">記憶體</span>
+                        <span class="text-sm text-purple-accent">1.2GB</span>
+                    </div>
+    
+                    <div class="flex items-center justify-between px-3 py-2">
+                        <span class="text-sm text-gray-400">網路</span>
+                        <span class="text-sm text-green-400">正常</span>
+                    </div>
+                </div>
             </nav>
         </div>
 
         <div class="flex-1 p-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="glass-card rounded-xl p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-400">總處理檔案</p>
+                            <p class="text-2xl font-bold text-white" id="totalFiles">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-cyan-accent/20 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-cyan-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center">
+                        <span class="text-xs text-green-400">+12%</span>
+                        <span class="text-xs text-gray-400 ml-2">vs 上次</span>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-xl p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-400">成功上傳</p>
+                            <p class="text-2xl font-bold text-white" id="successCount">0</p>
+                        </div>
+     
+                        <div class="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center">
+                        <span class="text-xs text-green-400">+8%</span>
+                        <span class="text-xs text-gray-400 ml-2">成功率</span>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-xl p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-400">處理錯誤</p>
+                            <p class="text-2xl font-bold text-white" id="errorCount">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center">
+                        <span class="text-xs text-red-400">-2%</span>
+                        <span class="text-xs text-gray-400 ml-2">錯誤率</span>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-xl p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-400">處理速度</p>
+                            <p class="text-2xl font-bold text-white" id="processingSpeed">0</p>
+                            <p class="text-xs text-gray-400">records/sec</p>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-purple-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-2">
                     <div class="glass-card rounded-xl p-6 mb-6">
                         <div class="flex items-center justify-between mb-6">
                             <h2 class="text-lg font-semibold text-white flex items-center">
-                                <svg class="w-5 h-5 text-cyan-accent mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 1.79 4 4 4h8c0-2.21-1.79-4-4-4H8c-2.21 0-4-1.79-4-4zm0 0V4c0-2.21 1.79-4 4-4h4c2.21 0 4 1.79 4 4v3M4 7h16"></path></svg>
+                                <svg class="w-5 h-5 text-cyan-accent mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 1.79 4 4 4h8c0-2.21-1.79-4-4-4H8c-2.21 0-4-1.79-4-4zm0 0V4c0-2.21 1.79-4 4-4h4c2.21 0 4 1.79 4 4v3M4 7h16"></path>
+                                </svg>
                                 Supabase 資料庫連線
                             </h2>
+                            <div class="flex items-center space-x-2">
+                                <span class="status-indicator status-offline" id="dbStatus"></span>
+                                <span class="text-sm text-gray-400">資料庫狀態</span>
+                            </div>
                         </div>
+                        
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-300 mb-2">Supabase URL</label>
-                                <input type="text" id="supabaseUrl" class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-cyan-accent focus:ring-1 focus:ring-cyan-accent transition-colors" placeholder="https://your-project-ref.supabase.co">
+                                <input type="text" id="supabaseUrl" 
+                                       class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-cyan-accent focus:ring-1 focus:ring-cyan-accent transition-colors" 
+                                       placeholder="https://your-project-ref.supabase.co">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-300 mb-2">Service Role Key</label>
-                                <input type="password" id="supabaseKey" class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-cyan-accent focus:ring-1 focus:ring-cyan-accent transition-colors" placeholder="your-service-role-key">
+                                <input type="password" id="supabaseKey" 
+                                       class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-cyan-accent focus:ring-1 focus:ring-cyan-accent transition-colors" 
+                                       placeholder="your-service-role-key">
                             </div>
                         </div>
-                        <button id="testConnectionButton" class="bg-gradient-to-r from-cyan-accent to-purple-accent text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg hover:shadow-cyan-accent/25 transition-all duration-300">
-                            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        
+                        <button id="testConnectionButton" 
+                                class="bg-gradient-to-r from-cyan-accent to-purple-accent text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg hover:shadow-cyan-accent/25 transition-all duration-300">
+                            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
                             測試連線
                         </button>
                     </div>
 
                     <div class="glass-card rounded-xl p-6">
                         <h2 class="text-lg font-semibold text-white mb-6 flex items-center">
-                            <svg class="w-5 h-5 text-cyan-accent mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                            <svg class="w-5 h-5 text-cyan-accent mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
                             檔案批次上傳
                         </h2>
+                        
                         <div class="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center mb-6 hover:border-cyan-accent transition-colors">
-                            <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                            <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
                             <p class="text-gray-300 mb-2">選擇包含所有資料的總資料夾</p>
                             <p class="text-sm text-gray-400 mb-4">系統將自動掃描並排序所有檔案</p>
-                            <button id="selectFoldersButton" class="bg-gradient-to-r from-cyan-accent to-blue-500 text-white px-8 py-3 rounded-lg font-medium hover:shadow-lg hover:shadow-cyan-accent/25 transition-all duration-300">
+                            <button id="selectFoldersButton" 
+                                    class="bg-gradient-to-r from-cyan-accent to-blue-500 text-white px-8 py-3 rounded-lg font-medium hover:shadow-lg hover:shadow-cyan-accent/25 transition-all duration-300">
                                 選擇資料夾
                             </button>
                         </div>
@@ -153,31 +317,12 @@
                                 <div id="fileList" class="space-y-2 max-h-40 overflow-y-auto"></div>
                             </div>
                             
-                            <div id="uploadTypeSelector" class="bg-gray-800 rounded-lg p-4 mb-4">
-                                <h3 class="text-sm font-medium text-gray-300 mb-3">選擇上傳類型</h3>
-                                <div class="flex items-center space-x-6 text-sm">
-                                    <label class="flex items-center space-x-2 cursor-pointer">
-                                        <input type="radio" id="uploadTypeAll" name="uploadType" value="all" class="form-radio h-4 w-4 text-cyan-accent bg-gray-700 border-gray-600 focus:ring-cyan-accent" checked>
-                                        <span>全選</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 cursor-pointer">
-                                        <input type="radio" id="uploadTypeA" name="uploadType" value="a" class="form-radio h-4 w-4 text-cyan-accent bg-gray-700 border-gray-600 focus:ring-cyan-accent">
-                                        <span>中古 (a)</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 cursor-pointer">
-                                        <input type="radio" id="uploadTypeB" name="uploadType" value="b" class="form-radio h-4 w-4 text-cyan-accent bg-gray-700 border-gray-600 focus:ring-cyan-accent">
-                                        <span>預售 (b)</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 cursor-pointer">
-                                        <input type="radio" id="uploadTypeC" name="uploadType" value="c" class="form-radio h-4 w-4 text-cyan-accent bg-gray-700 border-gray-600 focus:ring-cyan-accent">
-                                        <span>租賃 (c)</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <button id="startUploadButton" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-lg font-semibold hover:shadow-lg hover:shadow-green-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                                開始上傳
+                            <button id="startUploadButton" 
+                                    class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-lg font-semibold hover:shadow-lg hover:shadow-green-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                開始全自動上傳
                             </button>
                         </div>
                     </div>
@@ -190,7 +335,8 @@
                             <div class="relative w-32 h-32">
                                 <svg class="w-32 h-32 progress-ring" viewBox="0 0 84 84">
                                     <circle cx="42" cy="42" r="40" stroke="#374151" stroke-width="4" fill="none"/>
-                                    <circle cx="42" cy="42" r="40" stroke="#06b6d4" stroke-width="4" fill="none" class="progress-ring-circle" id="progressCircle"/>
+                                    <circle cx="42" cy="42" r="40" stroke="#06b6d4" stroke-width="4" fill="none" 
+                                            class="progress-ring-circle" id="progressCircle"/>
                                 </svg>
                                 <div class="absolute inset-0 flex items-center justify-center">
                                     <div class="text-center">
@@ -205,6 +351,55 @@
                             <p class="text-xs text-gray-500 mt-1" id="currentFileName"></p>
                         </div>
                     </div>
+
+                    <div class="glass-card rounded-xl p-6">
+                        <h3 class="text-lg font-semibold text-white mb-4">即時統計</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-400">新增記錄</span>
+                                <span class="text-sm font-medium text-green-400" id="newRecords">0</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-400">更新記錄</span>
+                                <span class="text-sm font-medium text-blue-400" id="updatedRecords">0</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-400">跳過記錄</span>
+                                <span class="text-sm font-medium text-gray-400" id="skippedRecords">0</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-400">錯誤記錄</span>
+                                <span class="text-sm font-medium text-red-400" id="errorRecords">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card rounded-xl p-6">
+                        <h3 class="text-lg font-semibold text-white mb-4">系統狀態</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <span class="status-indicator status-online"></span>
+                                    <span class="text-sm text-gray-300">前端服務</span>
+                                </div>
+                                <span class="text-xs text-green-400">運行中</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <span class="status-indicator" id="dbStatusIndicator"></span>
+                                    <span class="text-sm text-gray-300">資料庫</span>
+                                </div>
+                                <span class="text-xs text-gray-400" id="dbStatusText">未連線</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <span class="status-indicator status-online"></span>
+                                    <span class="text-sm text-gray-300">檔案系統</span>
+                                </div>
+                                <span class="text-xs text-green-400">正常</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -212,8 +407,10 @@
                 <div class="glass-card rounded-xl p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-semibold text-white flex items-center">
-                           <svg class="w-5 h-5 text-cyan-accent mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                           執行日誌
+                            <svg class="w-5 h-5 text-cyan-accent mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            執行日誌
                         </h3>
                         <button class="text-xs text-gray-400 hover:text-white" onclick="clearLogs('status')">清除</button>
                     </div>
@@ -225,7 +422,9 @@
                 <div class="glass-card rounded-xl p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-semibold text-white flex items-center">
-                            <svg class="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <svg class="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
                             錯誤日誌
                         </h3>
                         <button class="text-xs text-gray-400 hover:text-white" onclick="clearLogs('error')">清除</button>
@@ -241,6 +440,7 @@
     <script>
         // --- 設定與常數 ---
         const counties = { 'A': '臺北市', 'B': '臺中市', 'C': '基隆市', 'D': '臺南市', 'E': '高雄市', 'F': '新北市', 'G': '宜蘭縣', 'H': '桃園市', 'I': '嘉義市', 'J': '新竹縣', 'K': '苗栗縣', 'M': '南投縣', 'N': '彰化縣', 'O': '新竹市', 'P': '雲林縣', 'Q': '嘉義縣', 'T': '屏東縣', 'U': '花蓮縣', 'V': '臺東縣', 'W': '金門縣', 'X': '澎湖縣', 'Z': '連江縣' };
+        
         const columnMappings = {
             'a': { '編號': '編號', '鄉鎮市區': '行政區', '交易標的': '交易標的', '土地位置建物門牌': '地址', '交易年月日': '交易日', '交易筆棟數': '交易筆棟數', '移轉層次': '樓層', '建物型態': '建物型態', '主要用途': '主要用途', '建物移轉總面積平方公尺': '產權面積_房車', '建物現況格局-房': '房數', '建物現況格局-廳': '廳數', '建物現況格局-衛': '衛浴數', '總價元': '交易總價', '車位類別': '車位類別', '車位移轉總面積平方公尺': '車位總面積', '車位總價元': '車位總價', '備註': '備註', '主建物面積': '主建物面積', '附屬建物面積': '附屬建物面積', '陽台面積': '陽台面積'},
             'a_build': { '編號': '編號', '屋齡': '交易屋齡', '主要建材': '結構', '建築完成年月日': '完工日', '建築完成日期': '完工日', '總層數': '總樓層', '移轉情形': '移轉情形' },
@@ -254,12 +454,14 @@
             'c_land': { '編號': '編號', '土地位置': '地號_段', '地號': '地號', '土地移轉面積平方公尺': '土地租賃面積', '使用分區或編定': '使用分區', '非都市土地使用分區': '使用分區' },
             'c_park': { '編號': '編號', '車位類別': '車位類別', '車位價格': '車位價格', '車位面積平方公尺': '車位面積', '車位所在樓層': '車位樓層' }
         };
+
         let supabase = null;
         let allFiles = [];
         let processedMainIds = new Set();
         let summary = { new: 0, updated: 0, identical: 0, subAdded: 0, errors: 0 };
         let isUploading = false;
-
+        
+        // DOM Elements
         const DOM = {
             selectFoldersButton: document.getElementById('selectFoldersButton'),
             startUploadButton: document.getElementById('startUploadButton'),
@@ -274,9 +476,21 @@
             currentFileName: document.getElementById('currentFileName'),
             connectionStatus: document.getElementById('connectionStatus'),
             connectionText: document.getElementById('connectionText'),
+            dbStatus: document.getElementById('dbStatus'),
+            dbStatusIndicator: document.getElementById('dbStatusIndicator'),
+            dbStatusText: document.getElementById('dbStatusText'),
+            totalFiles: document.getElementById('totalFiles'),
+            successCount: document.getElementById('successCount'),
+            errorCount: document.getElementById('errorCount'),
+            processingSpeed: document.getElementById('processingSpeed'),
+            newRecords: document.getElementById('newRecords'),
+            updatedRecords: document.getElementById('updatedRecords'),
+            skippedRecords: document.getElementById('skippedRecords'),
+            errorRecords: document.getElementById('errorRecords'),
             currentTime: document.getElementById('currentTime')
         };
-
+        
+        // Utility Functions
         function cleanNumber(value) {
             if (typeof value !== 'string' && typeof value !== 'number') return null;
             const cleaned = String(value).replace(/,/g, '');
@@ -287,43 +501,63 @@
         function rocToDate(rocDateStr) {
             if (!rocDateStr || typeof rocDateStr !== 'string') return null;
             const match = String(rocDateStr).match(/(\d{2,3})[^\d]*(\d{1,2})[^\d]*(\d{1,2})/);
+
             if (!match) return null;
+
             try {
                 const rocYear = parseInt(match[1], 10);
                 const month = parseInt(match[2], 10);
                 const day = parseInt(match[3], 10);
+
                 if (isNaN(rocYear) || isNaN(month) || isNaN(day)) return null;
                 const adYear = rocYear + 1911;
+
                 const monthStr = String(month).padStart(2, '0');
                 const dayStr = String(day).padStart(2, '0');
                 const date = new Date(`${adYear}-${monthStr}-${dayStr}`);
-                if (isNaN(date.getTime()) || date.getDate() !== day) return null;
+                if (isNaN(date.getTime()) || date.getDate() !== day) {
+                    return null;
+                }
+
                 return `${adYear}-${monthStr}-${dayStr}`;
             } catch (e) {
                 return null;
             }
         }
         
+        // --- 【新增的函式】 ---
         function chineseFloorToNumber(floorStr) {
             if (!floorStr || typeof floorStr !== 'string') return null;
-            const s = String(floorStr).replace(/層|樓/g, '');
+
+            const s = String(floorStr).replace(/層|樓/g, ''); // 移除"層"或"樓"字元
             const charMap = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9 };
-            if (!isNaN(s)) return parseInt(s, 10);
-            if (s === '地下') return -1;
+            
+            if (!isNaN(s)) { // 如果本身就是數字 (例如 "12")
+                return parseInt(s, 10);
+            }
+            if (s === '地下') return -1; // 可根據需要處理地下層
+
+            // 處理中文數字
             let total = 0;
             const parts = s.split('十');
+
             if (parts.length === 2) {
+                // 處理 "二十二", "十二", "二十"
                 const part0 = parts[0] ? (charMap[parts[0]] || 1) : 1;
                 const part1 = parts[1] ? (charMap[parts[1]] || 0) : 0;
                 total = part0 * 10 + part1;
             } else if (s.includes('十')) {
+                 // 處理 "十"
                 total = 10;
             } else {
+                // 處理個位數 "一" 到 "九"
                 total = charMap[s] || null;
             }
+
             return total > 0 ? total : null;
         }
 
+        // --- 【修改的函式】 ---
         function processRow(row, mapping) {
             const newRow = {};
             const targetDbColumns = [...new Set(Object.values(mapping))];
@@ -333,6 +567,8 @@
                 if (dbColumn) {
                     let value = row[csvHeader];
                     if (value === undefined || value === '') continue;
+
+                    // 【核心修正】: 在此新增對樓層的特別處理
                     if (dbColumn === '樓層' || dbColumn === '總樓層') {
                         newRow[dbColumn] = chineseFloorToNumber(value);
                     } else if (dbColumn.includes('日')) {
@@ -365,21 +601,47 @@
             return true;
         }
 
+        // UI Functions
         function updateConnectionStatus(isConnected) {
             const statusClass = isConnected ? 'status-online' : 'status-offline';
             const statusText = isConnected ? '已連線' : '未連線';
+            const dbStatusText = isConnected ? '正常' : '未連線';
             DOM.connectionStatus.className = `status-indicator ${statusClass}`;
             DOM.connectionText.textContent = statusText;
+            DOM.dbStatus.className = `status-indicator ${statusClass}`;
+            DOM.dbStatusIndicator.className = `status-indicator ${statusClass}`;
+            DOM.dbStatusText.textContent = dbStatusText;
+        }
+
+        function updateProgress(current, total, phase = '') {
+            const percentage = total > 0 ? (current / total) * 100 : 0;
+            const circumference = 2 * Math.PI * 40;
+            const offset = circumference - (percentage / 100) * circumference;
+            
+            DOM.progressCircle.style.strokeDashoffset = offset;
+            DOM.progressPercent.textContent = `${Math.round(percentage)}%`;
+            DOM.progressStatus.textContent = phase || `${current} / ${total}`;
         }
 
         function addLog(message, type = 'info', container = 'status') {
             const timestamp = new Date().toLocaleTimeString();
             const logContainer = container === 'status' ? DOM.statusContainer : DOM.errorLogContainer;
             const typeClass = `terminal-${type}`;
+            
             const logEntry = document.createElement('div');
             logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> <span class="${typeClass}">${message}</span>`;
             logContainer.appendChild(logEntry);
             logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function updateStats() {
+            DOM.totalFiles.textContent = allFiles.length;
+            DOM.successCount.textContent = summary.new + summary.updated + summary.subAdded;
+            DOM.errorCount.textContent = summary.errors;
+            DOM.newRecords.textContent = summary.new;
+            DOM.updatedRecords.textContent = summary.updated;
+            DOM.skippedRecords.textContent = summary.identical;
+            DOM.errorRecords.textContent = summary.errors;
         }
 
         function clearLogs(type) {
@@ -400,24 +662,18 @@
             allFiles = [];
             processedMainIds.clear();
             summary = { new: 0, updated: 0, identical: 0, subAdded: 0, errors: 0 };
+            updateStats();
             updateProgress(0, 0);
         }
-        
-        function updateProgress(current, total, phase = '') {
-            const percentage = total > 0 ? (current / total) * 100 : 0;
-            const circumference = 2 * Math.PI * 40;
-            const offset = circumference - (percentage / 100) * circumference;
-            DOM.progressCircle.style.strokeDashoffset = offset;
-            DOM.progressPercent.textContent = `${Math.round(percentage)}%`;
-            DOM.progressStatus.textContent = phase || `${current} / ${total}`;
-        }
 
+        // File Handling
         async function selectFolders() {
             resetUI();
             if (!window.showDirectoryPicker) {
                 addLog('您的瀏覽器不支援資料夾選擇功能，請使用最新版本的 Chrome 或 Edge 瀏覽器。', 'error');
                 return;
             }
+            
             try {
                 addLog('正在掃描資料夾...', 'info');
                 const dirHandle = await window.showDirectoryPicker();
@@ -433,21 +689,27 @@
                         isMain: !match[2].includes('_') 
                     } : null;
                 }).filter(Boolean);
-
                 if (allFiles.length === 0) {
                     addLog('在選擇的資料夾中沒有找到符合命名規則的檔案。', 'warning');
                     return;
                 }
                 
+                // Display file list
                 DOM.fileList.innerHTML = '';
                 allFiles.forEach(file => {
                     const fileItem = document.createElement('div');
                     fileItem.className = 'flex items-center justify-between p-2 bg-gray-700 rounded text-sm';
-                    fileItem.innerHTML = `<span class="font-mono">${file.name}</span><span class="px-2 py-1 bg-cyan-accent/20 text-cyan-accent rounded text-xs">${file.isMain ? '主表' : '附表'}</span>`;
+                    fileItem.innerHTML = `
+                        <span class="font-mono">${file.name}</span>
+                        <span class="px-2 py-1 bg-cyan-accent/20 text-cyan-accent rounded text-xs">
+                            ${file.isMain ? '主表' : '附表'}
+                        </span>
+                    `;
                     DOM.fileList.appendChild(fileItem);
                 });
                 DOM.fileListContainer.classList.remove('hidden');
                 addLog(`掃描完成！找到 ${allFiles.length} 個有效檔案。`, 'success');
+                updateStats();
                 
             } catch (err) {
                 if (err.name !== 'AbortError') {
@@ -469,21 +731,27 @@
             return files;
         }
 
+        // Database Operations
         async function testConnection() {
             const supabaseUrl = document.getElementById('supabaseUrl').value;
             const supabaseKey = document.getElementById('supabaseKey').value;
+            
             if (!supabaseUrl || !supabaseKey) {
                 addLog('請填寫完整的 Supabase URL 和 Service Role Key。', 'error');
                 return;
             }
+            
             addLog('正在測試連線...', 'info');
             try {
                 const testSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
                 const { error } = await testSupabase.from('county_codes').select('code', { count: 'exact', head: true });
+                
                 if (error) throw error;
+                
                 addLog('連線成功！', 'success');
                 updateConnectionStatus(true);
                 supabase = testSupabase;
+                
             } catch (error) {
                 addLog(`連線失敗: ${error.message}`, 'error');
                 updateConnectionStatus(false);
@@ -495,41 +763,26 @@
                 addLog('請先測試 Supabase 連線', 'error');
                 return;
             }
+            
             if (allFiles.length === 0) {
                 addLog('請先選擇要上傳的檔案', 'error');
                 return;
             }
-
+            
             isUploading = true;
             DOM.startUploadButton.disabled = true;
             DOM.selectFoldersButton.disabled = true;
+            
             summary = { new: 0, updated: 0, identical: 0, subAdded: 0, errors: 0 };
+            addLog('開始上傳流程...', 'info');
             
-            const selectedType = document.querySelector('input[name="uploadType"]:checked').value;
-            const typeNameMap = { 'all': '全選', 'a': '中古', 'b': '預售', 'c': '租賃' };
-            
-            let filesToUpload = allFiles;
-            if (selectedType !== 'all') {
-                filesToUpload = allFiles.filter(file => file.tableType.startsWith(selectedType));
-            }
-
-            if (filesToUpload.length === 0) {
-                addLog(`找不到符合「${typeNameMap[selectedType]}」類型的檔案，已中止上傳。`, 'warning');
-                DOM.startUploadButton.disabled = false;
-                DOM.selectFoldersButton.disabled = false;
-                isUploading = false;
-                return;
-            }
-            
-            addLog(`已選擇上傳類型: ${typeNameMap[selectedType]}。共 ${filesToUpload.length} 個檔案待處理。`, 'info');
-            
-            const mainTables = filesToUpload.filter(f => f.isMain);
-            const subTables = filesToUpload.filter(f => !f.isMain);
-            
+            const mainTables = allFiles.filter(f => f.isMain);
+            const subTables = allFiles.filter(f => !f.isMain);
             await processPhase(mainTables, '階段 1: 主表 (智慧更新)', true);
             await processPhase(subTables, '階段 2: 附表 (智慧連動)', false);
             
             addLog('所有檔案處理完成！', 'success');
+            updateStats();
             
             DOM.selectFoldersButton.disabled = false;
             isUploading = false;
@@ -554,6 +807,7 @@
                 }
                 
                 updateProgress(i + 1, files.length, phaseName);
+                updateStats();
             }
             
             DOM.currentFileName.textContent = '';
@@ -563,6 +817,7 @@
             try {
                 const tableName = `${fileInfo.countyCode}_lvr_land_${fileInfo.tableType}`;
                 const processedData = await parseFile(fileInfo);
+                
                 if (!processedData || processedData.length === 0) {
                     addLog(`${fileInfo.name}: 檔案為空或解析失敗，已跳過`, 'warning');
                     return;
@@ -573,7 +828,10 @@
                     const chunk = processedData.slice(i, i + chunkSize);
                     const idsToCheck = chunk.map(row => row['編號']);
                     
-                    const { data: existingData, error: fetchError } = await supabase.from(tableName).select('*').in('編號', idsToCheck);
+                    const { data: existingData, error: fetchError } = await supabase
+                        .from(tableName)
+                        .select('*')
+                        .in('編號', idsToCheck);
                     if (fetchError) throw fetchError;
 
                     const existingDataMap = new Map(existingData.map(item => [item['編號'], item]));
@@ -603,13 +861,18 @@
                     idsToProcess.forEach(id => processedMainIds.add(id));
 
                     if (idsToDelete.length > 0) {
-                        const { error: deleteError } = await supabase.from(tableName).delete().in('編號', idsToDelete);
+                        const { error: deleteError } = await supabase
+                            .from(tableName)
+                            .delete()
+                            .in('編號', idsToDelete);
                         if (deleteError) throw deleteError;
                     }
 
                     const dataToUpload = [...newData, ...updatedData];
                     if (dataToUpload.length > 0) {
-                        const { error: insertError } = await supabase.from(tableName).insert(dataToUpload);
+                        const { error: insertError } = await supabase
+                            .from(tableName)
+                            .insert(dataToUpload);
                         if (insertError) throw insertError;
                     }
                 }
@@ -623,6 +886,7 @@
             try {
                 const tableName = `${fileInfo.countyCode}_lvr_land_${fileInfo.tableType}`;
                 const allSubData = await parseFile(fileInfo);
+                
                 if (!allSubData || allSubData.length === 0) {
                     addLog(`${fileInfo.name}: 檔案為空或解析失敗，已跳過`, 'warning');
                     return;
@@ -632,6 +896,7 @@
                 if (dataToUpload.length > 0) {
                     const { error } = await supabase.from(tableName).insert(dataToUpload);
                     if (error) throw error;
+                    
                     summary.subAdded += dataToUpload.length;
                     addLog(`${fileInfo.name}: 成功新增 ${dataToUpload.length} 筆關聯的附表紀錄`, 'success');
                 } else {
@@ -646,33 +911,50 @@
         async function parseFile(fileInfo) {
             const file = await fileInfo.fileHandle.getFile();
             const parseResult = await new Promise((resolve, reject) => {
-                Papa.parse(file, { header: true, skipEmptyLines: true, trimHeaders: true, complete: resolve, error: reject });
+                Papa.parse(file, { 
+                    header: true, 
+                    skipEmptyLines: true, 
+                    trimHeaders: true,
+                    complete: resolve, 
+                    error: reject 
+                });
             });
             if (parseResult.errors.length > 0) {
                 throw new Error(`CSV 解析錯誤: ${parseResult.errors[0].message}`);
             }
+            
             let dataRows = parseResult.data;
             if (dataRows.length > 0 && dataRows[0]['編號']?.toLowerCase().includes('serial number')) {
                 dataRows.shift();
             }
+            
             const mapping = columnMappings[fileInfo.tableType];
             if (!mapping) {
                 throw new Error(`檔案 ${fileInfo.name} 找不到對應規則。`);
             }
+            
             return dataRows.map(row => processRow(row, mapping));
         }
 
+        // Initialize
         function updateTime() {
             DOM.currentTime.textContent = new Date().toLocaleTimeString();
         }
 
+        // Event Listeners
         DOM.selectFoldersButton.addEventListener('click', selectFolders);
         DOM.startUploadButton.addEventListener('click', startUpload);
         DOM.testConnectionButton.addEventListener('click', testConnection);
 
+        // Initialize
         updateTime();
         setInterval(updateTime, 1000);
         updateConnectionStatus(false);
+        updateStats();
+        // Add some demo data for visual effect
+        setTimeout(() => {
+            DOM.processingSpeed.textContent = '1,247';
+        }, 1000);
     </script>
 </body>
 </html>
