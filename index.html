@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>不動產批次上傳工具 - Dashboard</title>
+    <title>不動產批次上傳工具 v4.9.1 (已修復)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -26,41 +26,16 @@
         }
     </script>
     <style>
-        body { 
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #1a1d29 0%, #252836 100%);
-            min-height: 100vh;
-        }
-        .glass-card {
-            background: rgba(37, 40, 54, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .progress-ring {
-            transform: rotate(-90deg);
-        }
-        .progress-ring-circle {
-            stroke-dasharray: 251.2;
-            stroke-dashoffset: 251.2;
-            transition: stroke-dashoffset 0.5s ease-in-out;
-        }
-        .terminal {
-            background: #0f172a;
-            border: 1px solid #334155;
-            font-family: 'Courier New', monospace;
-            color: #64748b;
-        }
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #1a1d29 0%, #252836 100%); min-height: 100vh; }
+        .glass-card { background: rgba(37, 40, 54, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .progress-ring { transform: rotate(-90deg); }
+        .progress-ring-circle { stroke-dasharray: 251.2; stroke-dashoffset: 251.2; transition: stroke-dashoffset 0.5s ease-in-out; }
+        .terminal { background: #0f172a; border: 1px solid #334155; font-family: 'Courier New', monospace; color: #64748b; }
         .terminal-success { color: #10b981; }
         .terminal-error { color: #ef4444; }
         .terminal-warning { color: #f59e0b; }
         .terminal-info { color: #06b6d4; }
-        .status-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-        }
+        .status-indicator { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
         .status-online { background: #10b981; }
         .status-offline { background: #ef4444; }
     </style>
@@ -70,13 +45,11 @@
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-4">
                 <div class="w-10 h-10 bg-gradient-to-r from-cyan-accent to-purple-accent rounded-lg flex items-center justify-center">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                    </svg>
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-white">不動產批次上傳工具</h1>
-                    <p class="text-sm text-gray-400">Real Estate Batch Upload Dashboard v4.9 (Clean Build)</p>
+                    <p class="text-sm text-gray-400">Real Estate Batch Upload Dashboard v4.9.1 (Patched)</p>
                 </div>
             </div>
             <div class="flex items-center space-x-4">
@@ -96,11 +69,11 @@
         <div class="w-64 bg-dark-sidebar border-r border-gray-700 min-h-screen p-4">
             <nav class="space-y-2">
                 <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">主要功能</div>
-                <a href="#connection" class="flex items-center space-x-3 px-3 py-2 rounded-lg bg-cyan-accent/10 text-cyan-accent border border-cyan-accent/20">
+                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-lg bg-cyan-accent/10 text-cyan-accent border border-cyan-accent/20">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 1.79 4 4 4h8c0-2.21-1.79-4-4-4H8c-2.21 0-4-1.79-4-4zm0 0V4c0-2.21 1.79-4 4-4h4c2.21 0 4 1.79 4 4v3M4 7h16"></path></svg>
                     <span>資料庫連線</span>
                 </a>
-                <a href="#upload" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/50">
+                 <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/50">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                     <span>檔案上傳</span>
                 </a>
@@ -111,12 +84,10 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-2">
                     <div class="glass-card rounded-xl p-6 mb-6">
-                        <div class="flex items-center justify-between mb-6">
-                            <h2 class="text-lg font-semibold text-white flex items-center">
-                                <svg class="w-5 h-5 text-cyan-accent mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 1.79 4 4 4h8c0-2.21-1.79-4-4-4H8c-2.21 0-4-1.79-4-4zm0 0V4c0-2.21 1.79-4 4-4h4c2.21 0 4 1.79 4 4v3M4 7h16"></path></svg>
-                                Supabase 資料庫連線
-                            </h2>
-                        </div>
+                        <h2 class="text-lg font-semibold text-white flex items-center mb-6">
+                            <svg class="w-5 h-5 text-cyan-accent mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 1.79 4 4 4h8c0-2.21-1.79-4-4-4H8c-2.21 0-4-1.79-4-4zm0 0V4c0-2.21 1.79-4 4-4h4c2.21 0 4 1.79 4 4v3M4 7h16"></path></svg>
+                            Supabase 資料庫連線
+                        </h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-300 mb-2">Supabase URL</label>
@@ -135,8 +106,8 @@
 
                     <div class="glass-card rounded-xl p-6">
                         <h2 class="text-lg font-semibold text-white mb-6 flex items-center">
-                            <svg class="w-5 h-5 text-cyan-accent mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                            檔案批次上傳
+                           <svg class="w-5 h-5 text-cyan-accent mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                           檔案批次上傳
                         </h2>
                         <div class="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center mb-6 hover:border-cyan-accent transition-colors">
                             <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
@@ -146,7 +117,7 @@
                                 選擇資料夾
                             </button>
                         </div>
-
+                        
                         <div id="fileListContainer" class="hidden">
                             <div class="bg-gray-800 rounded-lg p-4 mb-4">
                                 <h3 class="text-sm font-medium text-gray-300 mb-3">偵測到的檔案</h3>
@@ -154,7 +125,7 @@
                             </div>
                             
                             <div id="uploadTypeSelector" class="bg-gray-800 rounded-lg p-4 mb-4">
-                                <h3 class="text-sm font-medium text-gray-300 mb-3">選擇上傳類型</h3>
+                               <h3 class="text-sm font-medium text-gray-300 mb-3">選擇上傳類型</h3>
                                 <div class="flex items-center space-x-6 text-sm">
                                     <label class="flex items-center space-x-2 cursor-pointer">
                                         <input type="radio" id="uploadTypeAll" name="uploadType" value="all" class="form-radio h-4 w-4 text-cyan-accent bg-gray-700 border-gray-600 focus:ring-cyan-accent" checked>
@@ -189,8 +160,8 @@
                         <div class="flex items-center justify-center">
                             <div class="relative w-32 h-32">
                                 <svg class="w-32 h-32 progress-ring" viewBox="0 0 84 84">
-                                    <circle cx="42" cy="42" r="40" stroke="#374151" stroke-width="4" fill="none"/>
-                                    <circle cx="42" cy="42" r="40" stroke="#06b6d4" stroke-width="4" fill="none" class="progress-ring-circle" id="progressCircle"/>
+                                     <circle cx="42" cy="42" r="40" stroke="#374151" stroke-width="4" fill="none"/>
+                                     <circle cx="42" cy="42" r="40" stroke="#06b6d4" stroke-width="4" fill="none" class="progress-ring-circle" id="progressCircle"/>
                                 </svg>
                                 <div class="absolute inset-0 flex items-center justify-center">
                                     <div class="text-center">
@@ -254,6 +225,7 @@
             'c_land': { '編號': '編號', '土地位置': '地號_段', '地號': '地號', '土地移轉面積平方公尺': '土地租賃面積', '使用分區或編定': '使用分區', '非都市土地使用分區': '使用分區' },
             'c_park': { '編號': '編號', '車位類別': '車位類別', '車位價格': '車位價格', '車位面積平方公尺': '車位面積', '車位所在樓層': '車位樓層' }
         };
+
         let supabase = null;
         let allFiles = [];
         let processedMainIds = new Set();
@@ -276,7 +248,228 @@
             connectionText: document.getElementById('connectionText'),
             currentTime: document.getElementById('currentTime')
         };
+        
+        // --- 核心函式 ---
 
+        function addLog(message, type = 'info', container = 'status') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logContainer = container === 'status' ? DOM.statusContainer : DOM.errorLogContainer;
+            const typeClass = `terminal-${type}`;
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> <span class="${typeClass}">${message}</span>`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        /**
+         * @MODIFIED
+         * 遞迴掃描資料夾，返回包含完整相對路徑的檔案物件陣列
+         */
+        async function scanDirectory(dirHandle, path = '') {
+            let files = [];
+            for await (const entry of dirHandle.values()) {
+                const currentPath = path ? `${path}/${entry.name}` : entry.name;
+                if (entry.kind === 'file' && entry.name.toLowerCase().endsWith('.csv')) {
+                    files.push({ handle: entry, path: currentPath }); // 返回物件，包含 handle 和 path
+                } else if (entry.kind === 'directory') {
+                    files.push(...await scanDirectory(entry, currentPath));
+                }
+            }
+            return files;
+        }
+
+        /**
+         * @MODIFIED
+         * 選擇資料夾，處理包含路徑的檔案列表
+         */
+        async function selectFolders() {
+            resetUI();
+            if (!window.showDirectoryPicker) {
+                addLog('您的瀏覽器不支援資料夾選擇功能，請使用最新版本的 Chrome 或 Edge 瀏覽器。', 'error', 'error');
+                return;
+            }
+            try {
+                addLog('正在掃描資料夾...', 'info');
+                const dirHandle = await window.showDirectoryPicker();
+                const fileInfoList = await scanDirectory(dirHandle); // 取得帶有路徑的物件列表
+                
+                const fileRegex = /^([a-z])_lvr_land_([a-c](?:_build|_land|_park)?)\.csv$/i;
+                
+                allFiles = fileInfoList.map(item => {
+                    const match = item.handle.name.match(fileRegex);
+                    return match ? { 
+                        fileHandle: item.handle, 
+                        name: item.handle.name,
+                        fullPath: item.path, // <--- 使用掃描到的完整路徑
+                        countyCode: match[1].toLowerCase(), 
+                        tableType: match[2].toLowerCase(), 
+                        isMain: !match[2].includes('_') 
+                    } : null;
+                }).filter(Boolean);
+
+                if (allFiles.length === 0) {
+                    addLog('在選擇的資料夾中沒有找到符合命名規則的檔案。', 'warning', 'status');
+                    return;
+                }
+                
+                DOM.fileList.innerHTML = '';
+                allFiles.forEach(file => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'flex items-center justify-between p-2 bg-gray-700 rounded text-sm';
+                    fileItem.innerHTML = `<span class="font-mono">${file.fullPath}</span><span class="px-2 py-1 bg-cyan-accent/20 text-cyan-accent rounded text-xs">${file.isMain ? '主表' : '附表'}</span>`;
+                    DOM.fileList.appendChild(fileItem);
+                });
+                DOM.fileListContainer.classList.remove('hidden');
+                addLog(`掃描完成！找到 ${allFiles.length} 個有效檔案。`, 'success');
+                
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    addLog(`選擇資料夾時發生錯誤: ${err.message}`, 'error', 'error');
+                }
+            }
+        }
+
+        /**
+         * @MODIFIED
+         * 解析 CSV 檔案。此版本會忽略欄位數量不符的錯誤。
+         */
+        async function parseFile(fileInfo) {
+            const file = await fileInfo.fileHandle.getFile();
+            
+            const parseResult = await new Promise((resolve) => {
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    trimHeaders: true,
+                    complete: resolve // 無論成功或失敗都 resolve
+                });
+            });
+
+            // 檢查是否有解析錯誤
+            if (parseResult.errors && parseResult.errors.length > 0) {
+                const nonCriticalErrorCodes = ['TooManyFields', 'TooFewFields', 'MissingQuotes'];
+                const criticalErrors = parseResult.errors.filter(e => !nonCriticalErrorCodes.includes(e.code));
+                
+                if (criticalErrors.length > 0) {
+                    throw new Error(`CSV 嚴重解析錯誤: ${criticalErrors[0].message}`);
+                }
+
+                parseResult.errors.forEach(warning => {
+                    addLog(`檔案 ${fileInfo.fullPath} 有解析警告 (已忽略): ${warning.message} (行: ${warning.row + 2})`, 'warning', 'status');
+                });
+            }
+
+            if (!parseResult.data || parseResult.data.length === 0) {
+                return [];
+            }
+
+            let dataRows = parseResult.data;
+            if (dataRows[0]['編號']?.toLowerCase().includes('serial number')) {
+                dataRows.shift();
+            }
+
+            const mapping = columnMappings[fileInfo.tableType];
+            if (!mapping) {
+                throw new Error(`檔案 ${fileInfo.name} 找不到對應規則。`);
+            }
+            return dataRows.map(row => processRow(row, mapping));
+        }
+
+        /**
+         * @MODIFIED
+         * 上傳主檔案，錯誤日誌使用完整路徑
+         */
+        async function uploadMainFileWithSmartUpdate(fileInfo) {
+            try {
+                const tableName = `${fileInfo.countyCode}_lvr_land_${fileInfo.tableType}`;
+                const processedData = await parseFile(fileInfo);
+                
+                if (!processedData || processedData.length === 0) {
+                    addLog(`${fileInfo.fullPath}: 檔案為空或無有效資料，已跳過`, 'warning', 'status');
+                    return;
+                }
+                
+                const chunkSize = 500;
+                for (let i = 0; i < processedData.length; i += chunkSize) {
+                    const chunk = processedData.slice(i, i + chunkSize);
+                    const idsToCheck = chunk.map(row => row['編號']);
+                    
+                    const { data: existingData, error: fetchError } = await supabase.from(tableName).select('*').in('編號', idsToCheck);
+                    if (fetchError) throw fetchError;
+
+                    const existingDataMap = new Map(existingData.map(item => [item['編號'], item]));
+                    const newData = [];
+                    const updatedData = [];
+                    const idsToDelete = [];
+                    let identicalCount = 0;
+
+                    for (const newRecord of chunk) {
+                        const existingRecord = existingDataMap.get(newRecord['編號']);
+                        if (!existingRecord) {
+                            newData.push(newRecord);
+                        } else if (!isEqual(newRecord, existingRecord, fileInfo.tableType)) {
+                            idsToDelete.push(newRecord['編號']);
+                            updatedData.push(newRecord);
+                        } else {
+                            identicalCount++;
+                        }
+                    }
+                    
+                    addLog(`${fileInfo.fullPath} (區塊 ${Math.floor(i/chunkSize) + 1}): 新增 ${newData.length}, 更新 ${updatedData.length}, 跳過 ${identicalCount}`, 'info');
+                    summary.new += newData.length;
+                    summary.updated += updatedData.length;
+                    summary.identical += identicalCount;
+
+                    const idsToProcess = [...newData.map(r => r['編號']), ...updatedData.map(r => r['編號'])];
+                    idsToProcess.forEach(id => processedMainIds.add(id));
+
+                    if (idsToDelete.length > 0) {
+                        const { error: deleteError } = await supabase.from(tableName).delete().in('編號', idsToDelete);
+                        if (deleteError) throw deleteError;
+                    }
+
+                    const dataToUpload = [...newData, ...updatedData];
+                    if (dataToUpload.length > 0) {
+                        const { error: insertError } = await supabase.from(tableName).insert(dataToUpload);
+                        if (insertError) throw insertError;
+                    }
+                }
+            } catch (error) {
+                addLog(`${fileInfo.fullPath} 上傳失敗: ${error.message}`, 'error', 'error');
+                summary.errors++;
+            }
+        }
+
+        /**
+         * @MODIFIED
+         * 上傳附屬檔案，錯誤日誌使用完整路徑
+         */
+        async function uploadSubFile(fileInfo) {
+            try {
+                const tableName = `${fileInfo.countyCode}_lvr_land_${fileInfo.tableType}`;
+                const allSubData = await parseFile(fileInfo);
+                if (!allSubData || allSubData.length === 0) {
+                    addLog(`${fileInfo.fullPath}: 檔案為空或無有效資料，已跳過`, 'warning', 'status');
+                    return;
+                }
+
+                const dataToUpload = allSubData.filter(row => processedMainIds.has(row['編號']));
+                if (dataToUpload.length > 0) {
+                    const { error } = await supabase.from(tableName).insert(dataToUpload);
+                    if (error) throw error;
+                    summary.subAdded += dataToUpload.length;
+                    addLog(`${fileInfo.fullPath}: 成功新增 ${dataToUpload.length} 筆關聯的附表紀錄`, 'success');
+                } else {
+                    addLog(`${fileInfo.fullPath}: 無對應的主表變更，已跳過`, 'info');
+                }
+            } catch (error) {
+                addLog(`${fileInfo.fullPath} 上傳失敗: ${error.message}`, 'error', 'error');
+                summary.errors++;
+            }
+        }
+
+
+        // --- 其他未修改的輔助函式 ---
         function cleanNumber(value) {
             if (typeof value !== 'string' && typeof value !== 'number') return null;
             const cleaned = String(value).replace(/,/g, '');
@@ -372,16 +565,6 @@
             DOM.connectionText.textContent = statusText;
         }
 
-        function addLog(message, type = 'info', container = 'status') {
-            const timestamp = new Date().toLocaleTimeString();
-            const logContainer = container === 'status' ? DOM.statusContainer : DOM.errorLogContainer;
-            const typeClass = `terminal-${type}`;
-            const logEntry = document.createElement('div');
-            logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> <span class="${typeClass}">${message}</span>`;
-            logContainer.appendChild(logEntry);
-            logContainer.scrollTop = logContainer.scrollHeight;
-        }
-
         function clearLogs(type) {
             if (type === 'status') {
                 DOM.statusContainer.innerHTML = '<div class="text-gray-400">日誌已清除</div>';
@@ -412,91 +595,35 @@
             DOM.progressStatus.textContent = phase || `${current} / ${total}`;
         }
 
-        async function selectFolders() {
-            resetUI();
-            if (!window.showDirectoryPicker) {
-                addLog('您的瀏覽器不支援資料夾選擇功能，請使用最新版本的 Chrome 或 Edge 瀏覽器。', 'error');
-                return;
-            }
-            try {
-                addLog('正在掃描資料夾...', 'info');
-                const dirHandle = await window.showDirectoryPicker();
-                const fileHandles = await scanDirectory(dirHandle);
-                const fileRegex = /^([a-z])_lvr_land_([a-c](?:_build|_land|_park)?)\.csv$/i;
-                allFiles = fileHandles.map(handle => {
-                    const match = handle.name.match(fileRegex);
-                    return match ? { 
-                        fileHandle: handle, 
-                        name: handle.name, 
-                        countyCode: match[1].toLowerCase(), 
-                        tableType: match[2].toLowerCase(), 
-                        isMain: !match[2].includes('_') 
-                    } : null;
-                }).filter(Boolean);
-
-                if (allFiles.length === 0) {
-                    addLog('在選擇的資料夾中沒有找到符合命名規則的檔案。', 'warning');
-                    return;
-                }
-                
-                DOM.fileList.innerHTML = '';
-                allFiles.forEach(file => {
-                    const fileItem = document.createElement('div');
-                    fileItem.className = 'flex items-center justify-between p-2 bg-gray-700 rounded text-sm';
-                    fileItem.innerHTML = `<span class="font-mono">${file.name}</span><span class="px-2 py-1 bg-cyan-accent/20 text-cyan-accent rounded text-xs">${file.isMain ? '主表' : '附表'}</span>`;
-                    DOM.fileList.appendChild(fileItem);
-                });
-                DOM.fileListContainer.classList.remove('hidden');
-                addLog(`掃描完成！找到 ${allFiles.length} 個有效檔案。`, 'success');
-                
-            } catch (err) {
-                if (err.name !== 'AbortError') {
-                    addLog(`選擇資料夾時發生錯誤: ${err.message}`, 'error');
-                }
-            }
-        }
-
-        async function scanDirectory(dirHandle, path = '') {
-            let files = [];
-            for await (const entry of dirHandle.values()) {
-                const currentPath = path ? `${path}/${entry.name}` : entry.name;
-                if (entry.kind === 'file' && entry.name.toLowerCase().endsWith('.csv')) {
-                    files.push(entry);
-                } else if (entry.kind === 'directory') {
-                    files.push(...await scanDirectory(entry, currentPath));
-                }
-            }
-            return files;
-        }
-
         async function testConnection() {
             const supabaseUrl = document.getElementById('supabaseUrl').value;
             const supabaseKey = document.getElementById('supabaseKey').value;
             if (!supabaseUrl || !supabaseKey) {
-                addLog('請填寫完整的 Supabase URL 和 Service Role Key。', 'error');
+                addLog('請填寫完整的 Supabase URL 和 Service Role Key。', 'error', 'error');
                 return;
             }
             addLog('正在測試連線...', 'info');
             try {
                 const testSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+                // 假設 county_codes 表格存在，用於測試
                 const { error } = await testSupabase.from('county_codes').select('code', { count: 'exact', head: true });
-                if (error) throw error;
+                if (error && error.code !== '42P01') throw error; // 42P01 = table does not exist, which is fine for a test if the db is new
                 addLog('連線成功！', 'success');
                 updateConnectionStatus(true);
                 supabase = testSupabase;
             } catch (error) {
-                addLog(`連線失敗: ${error.message}`, 'error');
+                addLog(`連線失敗: ${error.message}`, 'error', 'error');
                 updateConnectionStatus(false);
             }
         }
 
         async function startUpload() {
             if (!supabase) {
-                addLog('請先測試 Supabase 連線', 'error');
+                addLog('請先測試 Supabase 連線', 'error', 'error');
                 return;
             }
             if (allFiles.length === 0) {
-                addLog('請先選擇要上傳的檔案', 'error');
+                addLog('請先選擇要上傳的檔案', 'error', 'error');
                 return;
             }
 
@@ -504,17 +631,15 @@
             DOM.startUploadButton.disabled = true;
             DOM.selectFoldersButton.disabled = true;
             summary = { new: 0, updated: 0, identical: 0, subAdded: 0, errors: 0 };
-            
             const selectedType = document.querySelector('input[name="uploadType"]:checked').value;
             const typeNameMap = { 'all': '全選', 'a': '中古', 'b': '預售', 'c': '租賃' };
-            
             let filesToUpload = allFiles;
             if (selectedType !== 'all') {
                 filesToUpload = allFiles.filter(file => file.tableType.startsWith(selectedType));
             }
 
             if (filesToUpload.length === 0) {
-                addLog(`找不到符合「${typeNameMap[selectedType]}」類型的檔案，已中止上傳。`, 'warning');
+                addLog(`找不到符合「${typeNameMap[selectedType]}」類型的檔案，已中止上傳。`, 'warning', 'status');
                 DOM.startUploadButton.disabled = false;
                 DOM.selectFoldersButton.disabled = false;
                 isUploading = false;
@@ -522,7 +647,6 @@
             }
             
             addLog(`已選擇上傳類型: ${typeNameMap[selectedType]}。共 ${filesToUpload.length} 個檔案待處理。`, 'info');
-            
             const mainTables = filesToUpload.filter(f => f.isMain);
             const subTables = filesToUpload.filter(f => !f.isMain);
             
@@ -545,7 +669,7 @@
             for (let i = 0; i < files.length; i++) {
                 const fileInfo = files[i];
                 updateProgress(i, files.length, phaseName);
-                DOM.currentFileName.textContent = fileInfo.name;
+                DOM.currentFileName.textContent = fileInfo.fullPath;
                 
                 if (isSmartUpdate) {
                     await uploadMainFileWithSmartUpdate(fileInfo);
@@ -559,113 +683,11 @@
             DOM.currentFileName.textContent = '';
         }
 
-        async function uploadMainFileWithSmartUpdate(fileInfo) {
-            try {
-                const tableName = `${fileInfo.countyCode}_lvr_land_${fileInfo.tableType}`;
-                const processedData = await parseFile(fileInfo);
-                if (!processedData || processedData.length === 0) {
-                    addLog(`${fileInfo.name}: 檔案為空或解析失敗，已跳過`, 'warning');
-                    return;
-                }
-                
-                const chunkSize = 500;
-                for (let i = 0; i < processedData.length; i += chunkSize) {
-                    const chunk = processedData.slice(i, i + chunkSize);
-                    const idsToCheck = chunk.map(row => row['編號']);
-                    
-                    const { data: existingData, error: fetchError } = await supabase.from(tableName).select('*').in('編號', idsToCheck);
-                    if (fetchError) throw fetchError;
-
-                    const existingDataMap = new Map(existingData.map(item => [item['編號'], item]));
-                    const newData = [];
-                    const updatedData = [];
-                    const idsToDelete = [];
-                    let identicalCount = 0;
-
-                    for (const newRecord of chunk) {
-                        const existingRecord = existingDataMap.get(newRecord['編號']);
-                        if (!existingRecord) {
-                            newData.push(newRecord);
-                        } else if (!isEqual(newRecord, existingRecord, fileInfo.tableType)) {
-                            idsToDelete.push(newRecord['編號']);
-                            updatedData.push(newRecord);
-                        } else {
-                            identicalCount++;
-                        }
-                    }
-                    
-                    addLog(`${fileInfo.name} (區塊 ${Math.floor(i/chunkSize) + 1}): 新增 ${newData.length}, 更新 ${updatedData.length}, 跳過 ${identicalCount}`, 'info');
-                    summary.new += newData.length;
-                    summary.updated += updatedData.length;
-                    summary.identical += identicalCount;
-
-                    const idsToProcess = [...newData.map(r => r['編號']), ...updatedData.map(r => r['編號'])];
-                    idsToProcess.forEach(id => processedMainIds.add(id));
-
-                    if (idsToDelete.length > 0) {
-                        const { error: deleteError } = await supabase.from(tableName).delete().in('編號', idsToDelete);
-                        if (deleteError) throw deleteError;
-                    }
-
-                    const dataToUpload = [...newData, ...updatedData];
-                    if (dataToUpload.length > 0) {
-                        const { error: insertError } = await supabase.from(tableName).insert(dataToUpload);
-                        if (insertError) throw insertError;
-                    }
-                }
-            } catch (error) {
-                addLog(`${fileInfo.name} 上傳失敗: ${error.message}`, 'error', 'error');
-                summary.errors++;
-            }
-        }
-
-        async function uploadSubFile(fileInfo) {
-            try {
-                const tableName = `${fileInfo.countyCode}_lvr_land_${fileInfo.tableType}`;
-                const allSubData = await parseFile(fileInfo);
-                if (!allSubData || allSubData.length === 0) {
-                    addLog(`${fileInfo.name}: 檔案為空或解析失敗，已跳過`, 'warning');
-                    return;
-                }
-
-                const dataToUpload = allSubData.filter(row => processedMainIds.has(row['編號']));
-                if (dataToUpload.length > 0) {
-                    const { error } = await supabase.from(tableName).insert(dataToUpload);
-                    if (error) throw error;
-                    summary.subAdded += dataToUpload.length;
-                    addLog(`${fileInfo.name}: 成功新增 ${dataToUpload.length} 筆關聯的附表紀錄`, 'success');
-                } else {
-                    addLog(`${fileInfo.name}: 無對應的主表變更，已跳過`, 'info');
-                }
-            } catch (error) {
-                addLog(`${fileInfo.name} 上傳失敗: ${error.message}`, 'error', 'error');
-                summary.errors++;
-            }
-        }
-
-        async function parseFile(fileInfo) {
-            const file = await fileInfo.fileHandle.getFile();
-            const parseResult = await new Promise((resolve, reject) => {
-                Papa.parse(file, { header: true, skipEmptyLines: true, trimHeaders: true, complete: resolve, error: reject });
-            });
-            if (parseResult.errors.length > 0) {
-                throw new Error(`CSV 解析錯誤: ${parseResult.errors[0].message}`);
-            }
-            let dataRows = parseResult.data;
-            if (dataRows.length > 0 && dataRows[0]['編號']?.toLowerCase().includes('serial number')) {
-                dataRows.shift();
-            }
-            const mapping = columnMappings[fileInfo.tableType];
-            if (!mapping) {
-                throw new Error(`檔案 ${fileInfo.name} 找不到對應規則。`);
-            }
-            return dataRows.map(row => processRow(row, mapping));
-        }
-
         function updateTime() {
             DOM.currentTime.textContent = new Date().toLocaleTimeString();
         }
 
+        // --- 事件監聽器與初始化 ---
         DOM.selectFoldersButton.addEventListener('click', selectFolders);
         DOM.startUploadButton.addEventListener('click', startUpload);
         DOM.testConnectionButton.addEventListener('click', testConnection);
