@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>不動產批次上傳工具 v4.9.1 (已修復)</title>
+    <title>不動產批次上傳工具 v5.0 (含總結報告)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -49,7 +49,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-white">不動產批次上傳工具</h1>
-                    <p class="text-sm text-gray-400">Real Estate Batch Upload Dashboard v4.9.1 (Patched)</p>
+                    <p class="text-sm text-gray-400">Real Estate Batch Upload Dashboard v5.0 (Summary)</p>
                 </div>
             </div>
             <div class="flex items-center space-x-4">
@@ -229,7 +229,8 @@
         let supabase = null;
         let allFiles = [];
         let processedMainIds = new Set();
-        let summary = { new: 0, updated: 0, identical: 0, subAdded: 0, errors: 0 };
+        // **修改點 1: summary 物件增加 warnings 屬性**
+        let summary = { new: 0, updated: 0, identical: 0, subAdded: 0, errors: 0, warnings: 0 };
         let isUploading = false;
 
         const DOM = {
@@ -251,26 +252,31 @@
         
         // --- 核心函式 ---
 
+        /**
+         * @MODIFIED
+         * 調整日誌函式以更好地支援多行和 HTML 內容
+         */
         function addLog(message, type = 'info', container = 'status') {
             const timestamp = new Date().toLocaleTimeString();
             const logContainer = container === 'status' ? DOM.statusContainer : DOM.errorLogContainer;
             const typeClass = `terminal-${type}`;
             const logEntry = document.createElement('div');
-            logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> <span class="${typeClass}">${message}</span>`;
+            // 使用 flex佈局來確保時間戳和訊息內容對齊
+            logEntry.className = 'flex items-start';
+            logEntry.innerHTML = `
+                <span class="text-gray-500 mr-2">[${timestamp}]</span>
+                <div class="flex-1 ${typeClass}">${message}</div>
+            `;
             logContainer.appendChild(logEntry);
             logContainer.scrollTop = logContainer.scrollHeight;
         }
 
-        /**
-         * @MODIFIED
-         * 遞迴掃描資料夾，返回包含完整相對路徑的檔案物件陣列
-         */
         async function scanDirectory(dirHandle, path = '') {
             let files = [];
             for await (const entry of dirHandle.values()) {
                 const currentPath = path ? `${path}/${entry.name}` : entry.name;
                 if (entry.kind === 'file' && entry.name.toLowerCase().endsWith('.csv')) {
-                    files.push({ handle: entry, path: currentPath }); // 返回物件，包含 handle 和 path
+                    files.push({ handle: entry, path: currentPath });
                 } else if (entry.kind === 'directory') {
                     files.push(...await scanDirectory(entry, currentPath));
                 }
@@ -278,10 +284,6 @@
             return files;
         }
 
-        /**
-         * @MODIFIED
-         * 選擇資料夾，處理包含路徑的檔案列表
-         */
         async function selectFolders() {
             resetUI();
             if (!window.showDirectoryPicker) {
@@ -291,16 +293,14 @@
             try {
                 addLog('正在掃描資料夾...', 'info');
                 const dirHandle = await window.showDirectoryPicker();
-                const fileInfoList = await scanDirectory(dirHandle); // 取得帶有路徑的物件列表
-                
+                const fileInfoList = await scanDirectory(dirHandle);
                 const fileRegex = /^([a-z])_lvr_land_([a-c](?:_build|_land|_park)?)\.csv$/i;
-                
                 allFiles = fileInfoList.map(item => {
                     const match = item.handle.name.match(fileRegex);
                     return match ? { 
                         fileHandle: item.handle, 
                         name: item.handle.name,
-                        fullPath: item.path, // <--- 使用掃描到的完整路徑
+                        fullPath: item.path,
                         countyCode: match[1].toLowerCase(), 
                         tableType: match[2].toLowerCase(), 
                         isMain: !match[2].includes('_') 
@@ -329,23 +329,12 @@
             }
         }
 
-        /**
-         * @MODIFIED
-         * 解析 CSV 檔案。此版本會忽略欄位數量不符的錯誤。
-         */
         async function parseFile(fileInfo) {
             const file = await fileInfo.fileHandle.getFile();
-            
             const parseResult = await new Promise((resolve) => {
-                Papa.parse(file, {
-                    header: true,
-                    skipEmptyLines: true,
-                    trimHeaders: true,
-                    complete: resolve // 無論成功或失敗都 resolve
-                });
+                Papa.parse(file, { header: true, skipEmptyLines: true, trimHeaders: true, complete: resolve });
             });
 
-            // 檢查是否有解析錯誤
             if (parseResult.errors && parseResult.errors.length > 0) {
                 const nonCriticalErrorCodes = ['TooManyFields', 'TooFewFields', 'MissingQuotes'];
                 const criticalErrors = parseResult.errors.filter(e => !nonCriticalErrorCodes.includes(e.code));
@@ -354,55 +343,41 @@
                     throw new Error(`CSV 嚴重解析錯誤: ${criticalErrors[0].message}`);
                 }
 
+                // **修改點 2: 發現警告時，增加 summary.warnings 的計數**
                 parseResult.errors.forEach(warning => {
                     addLog(`檔案 ${fileInfo.fullPath} 有解析警告 (已忽略): ${warning.message} (行: ${warning.row + 2})`, 'warning', 'status');
+                    summary.warnings++;
                 });
             }
 
-            if (!parseResult.data || parseResult.data.length === 0) {
-                return [];
-            }
+            if (!parseResult.data || parseResult.data.length === 0) { return []; }
 
             let dataRows = parseResult.data;
-            if (dataRows[0]['編號']?.toLowerCase().includes('serial number')) {
-                dataRows.shift();
-            }
-
+            if (dataRows[0]['編號']?.toLowerCase().includes('serial number')) { dataRows.shift(); }
             const mapping = columnMappings[fileInfo.tableType];
-            if (!mapping) {
-                throw new Error(`檔案 ${fileInfo.name} 找不到對應規則。`);
-            }
+            if (!mapping) { throw new Error(`檔案 ${fileInfo.name} 找不到對應規則。`); }
             return dataRows.map(row => processRow(row, mapping));
         }
 
-        /**
-         * @MODIFIED
-         * 上傳主檔案，錯誤日誌使用完整路徑
-         */
         async function uploadMainFileWithSmartUpdate(fileInfo) {
             try {
                 const tableName = `${fileInfo.countyCode}_lvr_land_${fileInfo.tableType}`;
                 const processedData = await parseFile(fileInfo);
-                
                 if (!processedData || processedData.length === 0) {
                     addLog(`${fileInfo.fullPath}: 檔案為空或無有效資料，已跳過`, 'warning', 'status');
                     return;
                 }
-                
                 const chunkSize = 500;
                 for (let i = 0; i < processedData.length; i += chunkSize) {
                     const chunk = processedData.slice(i, i + chunkSize);
                     const idsToCheck = chunk.map(row => row['編號']);
-                    
                     const { data: existingData, error: fetchError } = await supabase.from(tableName).select('*').in('編號', idsToCheck);
                     if (fetchError) throw fetchError;
-
                     const existingDataMap = new Map(existingData.map(item => [item['編號'], item]));
                     const newData = [];
                     const updatedData = [];
                     const idsToDelete = [];
                     let identicalCount = 0;
-
                     for (const newRecord of chunk) {
                         const existingRecord = existingDataMap.get(newRecord['編號']);
                         if (!existingRecord) {
@@ -414,20 +389,16 @@
                             identicalCount++;
                         }
                     }
-                    
                     addLog(`${fileInfo.fullPath} (區塊 ${Math.floor(i/chunkSize) + 1}): 新增 ${newData.length}, 更新 ${updatedData.length}, 跳過 ${identicalCount}`, 'info');
                     summary.new += newData.length;
                     summary.updated += updatedData.length;
                     summary.identical += identicalCount;
-
                     const idsToProcess = [...newData.map(r => r['編號']), ...updatedData.map(r => r['編號'])];
                     idsToProcess.forEach(id => processedMainIds.add(id));
-
                     if (idsToDelete.length > 0) {
                         const { error: deleteError } = await supabase.from(tableName).delete().in('編號', idsToDelete);
                         if (deleteError) throw deleteError;
                     }
-
                     const dataToUpload = [...newData, ...updatedData];
                     if (dataToUpload.length > 0) {
                         const { error: insertError } = await supabase.from(tableName).insert(dataToUpload);
@@ -440,10 +411,6 @@
             }
         }
 
-        /**
-         * @MODIFIED
-         * 上傳附屬檔案，錯誤日誌使用完整路徑
-         */
         async function uploadSubFile(fileInfo) {
             try {
                 const tableName = `${fileInfo.countyCode}_lvr_land_${fileInfo.tableType}`;
@@ -452,7 +419,6 @@
                     addLog(`${fileInfo.fullPath}: 檔案為空或無有效資料，已跳過`, 'warning', 'status');
                     return;
                 }
-
                 const dataToUpload = allSubData.filter(row => processedMainIds.has(row['編號']));
                 if (dataToUpload.length > 0) {
                     const { error } = await supabase.from(tableName).insert(dataToUpload);
@@ -469,14 +435,13 @@
         }
 
 
-        // --- 其他未修改的輔助函式 ---
+        // --- 其他輔助函式 ---
         function cleanNumber(value) {
             if (typeof value !== 'string' && typeof value !== 'number') return null;
             const cleaned = String(value).replace(/,/g, '');
             const num = parseFloat(cleaned);
             return isNaN(num) ? null : num;
         }
-        
         function rocToDate(rocDateStr) {
             if (!rocDateStr || typeof rocDateStr !== 'string') return null;
             const match = String(rocDateStr).match(/(\d{2,3})[^\d]*(\d{1,2})[^\d]*(\d{1,2})/);
@@ -492,11 +457,8 @@
                 const date = new Date(`${adYear}-${monthStr}-${dayStr}`);
                 if (isNaN(date.getTime()) || date.getDate() !== day) return null;
                 return `${adYear}-${monthStr}-${dayStr}`;
-            } catch (e) {
-                return null;
-            }
+            } catch (e) { return null; }
         }
-        
         function chineseFloorToNumber(floorStr) {
             if (!floorStr || typeof floorStr !== 'string') return null;
             const s = String(floorStr).replace(/層|樓/g, '');
@@ -516,7 +478,6 @@
             }
             return total > 0 ? total : null;
         }
-
         function processRow(row, mapping) {
             const newRow = {};
             const targetDbColumns = [...new Set(Object.values(mapping))];
@@ -542,7 +503,6 @@
             }
             return newRow;
         }
-
         function isEqual(objA, objB, tableType) {
             const keysToCheck = Object.values(columnMappings[tableType]);
             for (const key of keysToCheck) {
@@ -557,14 +517,12 @@
             }
             return true;
         }
-
         function updateConnectionStatus(isConnected) {
             const statusClass = isConnected ? 'status-online' : 'status-offline';
             const statusText = isConnected ? '已連線' : '未連線';
             DOM.connectionStatus.className = `status-indicator ${statusClass}`;
             DOM.connectionText.textContent = statusText;
         }
-
         function clearLogs(type) {
             if (type === 'status') {
                 DOM.statusContainer.innerHTML = '<div class="text-gray-400">日誌已清除</div>';
@@ -572,7 +530,6 @@
                 DOM.errorLogContainer.innerHTML = '<div class="text-gray-400">無錯誤記錄</div>';
             }
         }
-
         function resetUI() {
             DOM.fileListContainer.classList.add('hidden');
             DOM.statusContainer.innerHTML = '<div class="text-gray-400">等待操作...</div>';
@@ -582,10 +539,9 @@
             DOM.selectFoldersButton.disabled = false;
             allFiles = [];
             processedMainIds.clear();
-            summary = { new: 0, updated: 0, identical: 0, subAdded: 0, errors: 0 };
+            summary = { new: 0, updated: 0, identical: 0, subAdded: 0, errors: 0, warnings: 0 };
             updateProgress(0, 0);
         }
-        
         function updateProgress(current, total, phase = '') {
             const percentage = total > 0 ? (current / total) * 100 : 0;
             const circumference = 2 * Math.PI * 40;
@@ -594,7 +550,6 @@
             DOM.progressPercent.textContent = `${Math.round(percentage)}%`;
             DOM.progressStatus.textContent = phase || `${current} / ${total}`;
         }
-
         async function testConnection() {
             const supabaseUrl = document.getElementById('supabaseUrl').value;
             const supabaseKey = document.getElementById('supabaseKey').value;
@@ -605,9 +560,8 @@
             addLog('正在測試連線...', 'info');
             try {
                 const testSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-                // 假設 county_codes 表格存在，用於測試
                 const { error } = await testSupabase.from('county_codes').select('code', { count: 'exact', head: true });
-                if (error && error.code !== '42P01') throw error; // 42P01 = table does not exist, which is fine for a test if the db is new
+                if (error && error.code !== '42P01') throw error;
                 addLog('連線成功！', 'success');
                 updateConnectionStatus(true);
                 supabase = testSupabase;
@@ -615,6 +569,37 @@
                 addLog(`連線失敗: ${error.message}`, 'error', 'error');
                 updateConnectionStatus(false);
             }
+        }
+
+        /**
+         * @NEW
+         * 顯示最終的統計總結報告
+         */
+        function displayFinalSummary() {
+            const summaryContent = `
+                <div class="space-y-1 text-sm font-mono p-2 border border-gray-700 rounded-md">
+                    <div><strong class="text-white">主表處理結果:</strong>
+                        <ul class="list-disc list-inside pl-4">
+                            <li>新增紀錄: <span class="font-bold text-green-400">${summary.new}</span> 筆</li>
+                            <li>更新紀錄: <span class="font-bold text-yellow-400">${summary.updated}</span> 筆</li>
+                            <li>內容相同跳過: <span class="font-bold text-gray-400">${summary.identical}</span> 筆</li>
+                        </ul>
+                    </div>
+                    <div><strong class="text-white">附表處理結果:</strong>
+                        <ul class="list-disc list-inside pl-4">
+                            <li>新增關聯紀錄: <span class="font-bold text-green-400">${summary.subAdded}</span> 筆</li>
+                        </ul>
+                    </div>
+                    <div class="pt-1 mt-1 border-t border-gray-700"><strong class="text-white">整體狀況:</strong>
+                        <ul class="list-disc list-inside pl-4">
+                            <li>解析警告 (已忽略): <span class="font-bold text-yellow-400">${summary.warnings}</span> 次</li>
+                            <li>上傳失敗檔案: <span class="font-bold text-red-400">${summary.errors}</span> 個</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            addLog('--- <strong>上傳結果總結</strong> ---', 'success');
+            addLog(summaryContent, 'info');
         }
 
         async function startUpload() {
@@ -630,7 +615,9 @@
             isUploading = true;
             DOM.startUploadButton.disabled = true;
             DOM.selectFoldersButton.disabled = true;
-            summary = { new: 0, updated: 0, identical: 0, subAdded: 0, errors: 0 };
+            // **修改點 1 (重複): 重置 summary 物件**
+            summary = { new: 0, updated: 0, identical: 0, subAdded: 0, errors: 0, warnings: 0 };
+            
             const selectedType = document.querySelector('input[name="uploadType"]:checked').value;
             const typeNameMap = { 'all': '全選', 'a': '中古', 'b': '預售', 'c': '租賃' };
             let filesToUpload = allFiles;
@@ -655,6 +642,9 @@
             
             addLog('所有檔案處理完成！', 'success');
             
+            // **修改點 3: 在所有任務結束後呼叫 displayFinalSummary**
+            displayFinalSummary();
+
             DOM.selectFoldersButton.disabled = false;
             isUploading = false;
         }
@@ -664,22 +654,18 @@
                 addLog(`在 ${phaseName} 中沒有需要上傳的檔案，跳過此階段。`, 'info');
                 return;
             }
-            
             addLog(`--- ${phaseName} ---`, 'info');
             for (let i = 0; i < files.length; i++) {
                 const fileInfo = files[i];
                 updateProgress(i, files.length, phaseName);
                 DOM.currentFileName.textContent = fileInfo.fullPath;
-                
                 if (isSmartUpdate) {
                     await uploadMainFileWithSmartUpdate(fileInfo);
                 } else {
                     await uploadSubFile(fileInfo);
                 }
-                
                 updateProgress(i + 1, files.length, phaseName);
             }
-            
             DOM.currentFileName.textContent = '';
         }
 
