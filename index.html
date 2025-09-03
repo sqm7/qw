@@ -130,6 +130,11 @@
        
         <div id="ranking-report-content" class="tab-content">
            <div id="metric-cards-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8"></div>
+           <div id="ranking-metric-selector" class="mb-4 flex justify-center items-center gap-2">
+                <button class="capsule-btn active" data-metric="saleAmountSum">交易總價</button>
+                <button class="capsule-btn" data-metric="houseAreaSum">房屋面積</button>
+                <button class="capsule-btn" data-metric="transactionCount">資料筆數</button>
+           </div>
            <div id="ranking-chart-container" class="mb-8"></div>
            <div class="overflow-x-auto">
                 <table id="ranking-table" class="min-w-full divide-y divide-gray-800"></table>
