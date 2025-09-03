@@ -492,3 +492,30 @@ export function handleGlobalClick(e) {
         heatmapRenderer.applyHeatmapGridFilter();
     }
 }
+
+// ▼▼▼ 【請將此函式完整複製並貼到檔案最下方】 ▼▼▼
+/**
+ * 處理核心指標排名 Treemap 的指標切換事件
+ * @param {Event} event - The click event object.
+ */
+export function handleRankingMetricChange(event) {
+    const button = event.target.closest('.capsule-btn');
+    if (!button) return;
+
+    const metric = button.dataset.metric;
+    if (metric && metric !== state.currentRankingMetric) {
+        // 更新狀態
+        updateState({ currentRankingMetric: metric });
+
+        // 更新按鈕的 active 狀態
+        document.querySelectorAll('#ranking-metric-selector .capsule-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        button.classList.add('active');
+
+        // 重新渲染圖表
+        if (state.analysisDataCache && state.analysisDataCache.projectRanking) {
+            chartRenderer.renderRankingTreemap(state.analysisDataCache.projectRanking, metric);
+        }
+    }
+}
