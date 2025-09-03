@@ -24,7 +24,8 @@ import {
     handlePriceBandRoomFilterClick,
     handleVelocityRoomFilterClick,
     handleVelocitySubTabClick,
-    handleHeatmapMetricToggle, // 引入新的事件處理函式
+    handleHeatmapMetricToggle,
+    handleRankingMetricToggle, // 引入新的事件處理函式
     handlePriceGridProjectFilterClick,
     analyzeHeatmap,
     handleBackToGrid,
@@ -38,7 +39,6 @@ import { state } from './modules/state.js';
 import * as reportRenderer from './modules/renderers/reports.js';
 import * as chartRenderer from './modules/renderers/charts.js';
 
-{/* */}
 async function setupUserStatus() {
     try {
         const user = await api.getUser();
@@ -61,16 +61,13 @@ async function setupUserStatus() {
         console.error('無法設定使用者狀態:', error);
     }
 }
-{/* */}
 
 function initialize() {
     api.checkAuth().catch(err => {
         console.error("認證檢查失敗:", err);
     });
 
-    {/* */}
-    setupUserStatus(); // 呼叫新的函式來設定右上角的 UI
-    {/* */}
+    setupUserStatus(); 
 
     try {
         const countyNames = Object.keys(districtData);
@@ -160,9 +157,25 @@ function initialize() {
     dom.backToGridBtn.addEventListener('click', handleBackToGrid);
     dom.heatmapLegendContainer.addEventListener('click', handleLegendClick);
     
-    // ▼▼▼ 【新增處】綁定新的事件監聽器 ▼▼▼
     dom.heatmapMetricToggle.addEventListener('click', handleHeatmapMetricToggle);
-    // ▲▲▲ 【新增結束】 ▲▲▲
+    
+    // ▼▼▼ 新增處：為新的排名圖表切換功能註冊事件監聽器 ▼▼▼
+    if (dom.rankingMetricToggle) {
+        dom.rankingMetricToggle.addEventListener('click', (e) => {
+            const button = e.target.closest('.avg-type-btn');
+            if (!button || button.classList.contains('active')) return;
+            const metric = button.dataset.metric;
+            state.currentRankingMetric = metric;
+
+            dom.rankingMetricToggle.querySelector('.active').classList.remove('active');
+            button.classList.add('active');
+
+            if (state.analysisDataCache) {
+                chartRenderer.renderRankingChart(state.currentRankingMetric);
+            }
+        });
+    }
+    // ▲▲▲ 新增結束 ▼▼▼
 
     // 熱力圖面積級距控制
     dom.heatmapIntervalInput.addEventListener('change', chartRenderer.renderAreaHeatmap);
