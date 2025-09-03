@@ -68,9 +68,7 @@ export function renderRankingChart() {
                 bar: {
                     horizontal: true,
                     borderRadius: 2,
-                    dataLabels: {
-                        position: 'top',
-                    }
+                    // ▼▼▼ 【修改處】移除這裡的 dataLabels position 設定，讓標籤預設在外部 ▼▼▼
                 }
             },
             dataLabels: {
@@ -82,7 +80,9 @@ export function renderRankingChart() {
                 formatter: function(val) {
                     return val.toLocaleString(undefined, {maximumFractionDigits: 2});
                 },
-                offsetX: 7,
+                // ▼▼▼ 【修改處】增加 offsetX 的值，讓文字與圖表間距變大 ▼▼▼
+                offsetX: 10,
+                // ▲▲▲ 【修改結束】 ▲▲▲
                 dropShadow: {
                   enabled: true,
                   top: 1, left: 1, blur: 1, color: '#000', opacity: 0.6
