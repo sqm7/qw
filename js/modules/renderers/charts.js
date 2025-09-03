@@ -68,7 +68,6 @@ export function renderRankingChart() {
                 bar: {
                     horizontal: true,
                     borderRadius: 2,
-                    // ▼▼▼ 【修改處】移除這裡的 dataLabels position 設定，讓標籤預設在外部 ▼▼▼
                 }
             },
             dataLabels: {
@@ -80,9 +79,7 @@ export function renderRankingChart() {
                 formatter: function(val) {
                     return val.toLocaleString(undefined, {maximumFractionDigits: 2});
                 },
-                // ▼▼▼ 【修改處】增加 offsetX 的值，讓文字與圖表間距變大 ▼▼▼
                 offsetX: 10,
-                // ▲▲▲ 【修改結束】 ▲▲▲
                 dropShadow: {
                   enabled: true,
                   top: 1, left: 1, blur: 1, color: '#000', opacity: 0.6
@@ -101,7 +98,10 @@ export function renderRankingChart() {
             yaxis: {
                 labels: {
                     style: { colors: THEME_COLORS['text-dark'], fontSize: '11px' },
-                    align: 'right'
+                    align: 'right',
+                    // ▼▼▼ 【修改處】增加 offsetX，讓 Y 軸標籤（建案名稱）向左移動，產生間距 ▼▼▼
+                    offsetX: -5
+                    // ▲▲▲ 【修改結束】 ▲▲▲
                 }
             },
             title: {
@@ -121,7 +121,12 @@ export function renderRankingChart() {
             grid: {
                 borderColor: '#374151',
                 xaxis: { lines: { show: true } },
-                yaxis: { lines: { show: false } }
+                yaxis: { lines: { show: false } },
+                 // ▼▼▼ 【修改處】在 grid 中增加 padding，確保左側有足夠空間顯示標籤 ▼▼▼
+                padding: {
+                    left: 20
+                }
+                // ▲▲▲ 【修改結束】 ▲▲▲
             },
             noData: { text: '無資料可顯示' }
         };
