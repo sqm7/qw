@@ -1,44 +1,37 @@
 // js/modules/state.js
 
-import { dom } from './dom.js';
-import { countyCodeMap } from './config.js';
-
-// 使用一個物件來封裝所有狀態，方便管理和傳遞
+/**
+ * 全局狀態管理物件
+ */
 export const state = {
-    currentRankingMetric: 'saleAmountSum', // 預設為交易總價
-    currentPage: 1,
-    pageSize: 30,
-    totalRecords: 0,
-    selectedDistricts: [],
-    selectedProjects: [],
-    suggestionDebounceTimer: null,
-    analysisDataCache: null,
-    currentSort: { key: 'saleAmountSum', order: 'desc' },
-    rankingCurrentPage: 1,
-    rankingPageSize: 15,
-    currentAverageType: 'arithmetic',
-    currentVelocityView: 'monthly',
-    selectedVelocityRooms: [],
-    selectedPriceBandRoomTypes: [],
-    selectedPriceGridProject: null,
-    isHeatmapActive: false,
-    currentLegendFilter: { type: null, value: null },
-    areaHeatmapChart: null,
-    // ▼▼▼ 【新增處】 ▼▼▼
-    lastHeatmapDetails: null, // 儲存上次點擊熱力圖的詳細數據
-    currentHeatmapDetailMetric: 'median', // 預設顯示中位數
-    // ▲▲▲ 【新增結束】 ▲▲▲
-};
+    // --- 使用者身份與權限 ---
+    user: null,
 
-// 根據當前狀態獲取篩選條件
-export function getFilters() {
-    const filters = {};
-    if (dom.countySelect.value) filters.countyCode = countyCodeMap[dom.countySelect.value] || '';
-    if (state.selectedDistricts.length > 0) filters.districts = state.selectedDistricts;
-    if (dom.typeSelect.value) filters.type = dom.typeSelect.value;
-    if (dom.dateStartInput.value) filters.dateStart = dom.dateStartInput.value;
-    if (dom.dateEndInput.value) filters.dateEnd = dom.dateEndInput.value;
-    if (dom.buildingTypeSelect.value) filters.buildingType = dom.buildingTypeSelect.value;
-    if (state.selectedProjects.length > 0) filters.projectNames = state.selectedProjects;
-    return filters;
-}
+    // --- 下拉選單選項 ---
+    countyNames: [],
+    districtNames: [],
+    projectNames: [],
+
+    // --- 查詢參數 ---
+    lastQueryParams: null,
+
+    // --- 數據快取 ---
+    analysisDataCache: null,
+    
+    // --- UI 狀態 ---
+    isReportVisible: false,
+
+    // --- 圖表與互動狀態 ---
+    // 總價帶分析
+    availablePriceBandRoomTypes: [],
+    selectedPriceBandRoomTypes: [],
+    
+    // 銷售速度分析
+    availableVelocityRooms: [],
+    selectedVelocityRooms: [],
+    currentVelocityView: 'monthly', // 'monthly', 'quarterly', 'yearly'
+
+    // 面積分佈熱力圖
+    areaHeatmapChart: null,
+    lastHeatmapDetails: null // 用於存儲點擊熱力圖單元格後的詳細數據
+};
