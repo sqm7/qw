@@ -10,7 +10,6 @@ let salesVelocityChartInstance = null;
 let priceBandChartInstance = null;
 let rankingChartInstance = null;
 
-// ▼▼▼ 【已修改】將長條圖替換為樹狀圖 (Treemap) ▼▼▼
 /**
  * 渲染建案銷售總額佔比樹狀圖
  * @param {string} metric 要顯示的指標，可以是 'saleAmountSum', 'houseAreaSum', 'transactionCount'
@@ -28,7 +27,6 @@ export function renderRankingChart(metric = 'saleAmountSum') {
 
     const { projectRanking } = state.analysisDataCache;
 
-    // 1. 根據傳入的指標設定動態配置
     const metricConfig = {
         'saleAmountSum': { name: '銷售總額', label: '萬', title: '建案銷售總額佔比 (Treemap)', total: 0 },
         'houseAreaSum': { name: '房屋面積', label: '坪', title: '建案房屋面積佔比 (Treemap)', total: 0 },
@@ -36,16 +34,13 @@ export function renderRankingChart(metric = 'saleAmountSum') {
     };
     const currentConfig = metricConfig[metric] || metricConfig['saleAmountSum'];
     
-    // 計算總和以供百分比計算使用
     currentConfig.total = projectRanking.reduce((sum, p) => sum + (p[metric] || 0), 0);
 
-    // 2. 準備 Treemap 所需的資料格式：{ x: '建案名', y: 指標數值 }
     const seriesData = projectRanking.map(p => ({
         x: p.projectName,
         y: Math.round(p[metric] || 0)
     }));
 
-    // 3. 自定義顏色範圍以符合網站風格
     const mainColor = THEME_COLORS['purple-accent'] || '#8b5cf6';
     const lightColor = THEME_COLORS['cyan-accent'] || '#06b6d4';
     
@@ -55,7 +50,7 @@ export function renderRankingChart(metric = 'saleAmountSum') {
             data: seriesData
         }],
         chart: {
-            type: 'treemap', // <-- 圖表類型已修改
+            type: 'treemap',
             height: 450,
             background: 'transparent',
             toolbar: { 
@@ -82,10 +77,9 @@ export function renderRankingChart(metric = 'saleAmountSum') {
         },
         plotOptions: {
             treemap: {
-                distributed: true, // 讓每個方塊都有不同顏色
-                enableShades: true, // 啟用顏色深淺變化
+                distributed: true,
+                enableShades: true,
                 colorScale: {
-                    // 顏色範圍：從淺紫到深紫
                     ranges: [
                         { from: 0, to: 100000, color: '#a78bfa' },
                         { from: 100001, to: 500000, color: '#8b5cf6' },
@@ -117,8 +111,6 @@ export function renderRankingChart(metric = 'saleAmountSum') {
     rankingChartInstance = new ApexCharts(dom.rankingChartContainer, options);
     rankingChartInstance.render();
 }
-// ▲▲▲ 【修改結束】 ▲▲▲
-
 
 /**
  * 渲染總價帶分佈箱型圖
@@ -474,27 +466,22 @@ export function renderAreaHeatmap() {
                     const roomType = state.selectedVelocityRooms[dataPointIndex];
                     const [lower, upper] = areaRange.split('-').map(parseFloat);
 
-                    // ▼▼▼【已根據您的要求修正】▼▼▼
-                    // 移除第四站邏輯，不符合前三站的都歸類為"其他"
                     const getRoomCategory = (record) => {
                         const buildingType = record['建物型態'] || '';
                         const mainPurpose = record['主要用途'] || '';
                         const rooms = record['房數'];
                         const houseArea = record['房屋面積(坪)'];
 
-                        // 優先級 1: 特殊商業用途
                         if (buildingType.includes('店舖') || buildingType.includes('店面')) return '店舖';
                         if (buildingType.includes('工廠') || buildingType.includes('倉庫') || buildingType.includes('廠辦')) return '廠辦/工廠';
                         if (mainPurpose.includes('商業') || buildingType.includes('辦公') || buildingType.includes('事務所')) return '辦公/事務所';
 
-                        // 優先級 2: 特殊住宅格局 (0房)
                         const isResidentialBuilding = buildingType.includes('住宅大樓') || buildingType.includes('華廈');
                         if (isResidentialBuilding && rooms === 0) {
                             if (houseArea > 35) return '毛胚';
                             if (houseArea <= 35) return '套房';
                         }
 
-                        // 優先級 3: 標準住宅房型
                         if (typeof rooms === 'number' && !isNaN(rooms)) {
                             if (rooms === 1) return '1房';
                             if (rooms === 2) return '2房';
@@ -503,12 +490,8 @@ export function renderAreaHeatmap() {
                             if (rooms >= 5) return '5房以上';
                         }
                         
-                        // ▼▼▼【第四站備用邏輯已移除】▼▼▼
-
-                        // 最終備用選項：以上皆不符合者，歸於此類
                         return '其他'; 
                     };
-                    // ▲▲▲【修改結束】▲▲▲
 
                     const matchingTransactions = state.analysisDataCache.transactionDetails.filter(tx => {
                         const txRoomType = getRoomCategory(tx);
@@ -532,15 +515,12 @@ export function renderAreaHeatmap() {
                         
                         const safeDivide = (a, b) => b > 0 ? a / b : 0;
 
-                        // 中位數
                         const medianPrice = prices.length > 0 ? (prices.length % 2 === 0 ? (prices[prices.length / 2 - 1] + prices[prices.length / 2]) / 2 : prices[Math.floor(prices.length / 2)]) : 0;
                         const medianUnitPrice = unitPrices.length > 0 ? (unitPrices.length % 2 === 0 ? (unitPrices[unitPrices.length / 2 - 1] + unitPrices[unitPrices.length / 2]) / 2 : unitPrices[Math.floor(unitPrices.length / 2)]) : 0;
                         
-                        // 算術平均
                         const arithmeticAvgPrice = safeDivide(prices.reduce((s, p) => s + p, 0), prices.length);
                         const arithmeticAvgUnitPrice = safeDivide(unitPrices.reduce((s, p) => s + p, 0), unitPrices.length);
 
-                        // 加權平均
                         const totalHousePrice = txs.reduce((s, t) => s + (t['房屋總價(萬)'] || 0), 0);
                         const totalArea = txs.reduce((s, t) => s + (t['房屋面積(坪)'] || 0), 0);
                         const weightedAvgUnitPrice = safeDivide(totalHousePrice, totalArea);
