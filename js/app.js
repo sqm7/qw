@@ -1,4 +1,4 @@
-// js/app.js (修正版)
+// js/app.js (最終修正版，適配所有拆分後的模組)
 
 import { districtData } from './modules/config.js';
 import * as api from './modules/api.js';
@@ -69,16 +69,24 @@ function initialize() {
 
     setupUserStatus(); 
 
+    // ▼▼▼ 修復處：確保縣市資料被正確載入和初始化 ▼▼▼
     try {
         const countyNames = Object.keys(districtData);
         countyNames.forEach(name => {
             dom.countySelect.add(new Option(name, name));
         });
+        
+        // 如果有縣市資料，解除下拉式選單的禁用狀態
+        if (countyNames.length > 0) {
+            dom.countySelect.disabled = false;
+        }
+
     } catch (error) {
         console.error("填入縣市資料時發生錯誤:", error);
         ui.showMessage("系統初始化失敗：載入縣市資料時出錯。", true);
         return;
     }
+    // ▲▲▲ 修復結束 ▲▲▲
     
     dom.rankingPaginationControls.id = 'ranking-pagination-controls';
     dom.rankingPaginationControls.className = 'flex justify-between items-center mt-4 text-sm text-gray-400';
@@ -159,7 +167,6 @@ function initialize() {
     
     dom.heatmapMetricToggle.addEventListener('click', handleHeatmapMetricToggle);
     
-    // ▼▼▼ 新增處：為新的排名圖表切換功能註冊事件監聽器 ▼▼▼
     if (dom.rankingMetricToggle) {
         dom.rankingMetricToggle.addEventListener('click', (e) => {
             const button = e.target.closest('.avg-type-btn');
@@ -175,7 +182,6 @@ function initialize() {
             }
         });
     }
-    // ▲▲▲ 新增結束 ▼▼▼
 
     // 熱力圖面積級距控制
     dom.heatmapIntervalInput.addEventListener('change', chartRenderer.renderAreaHeatmap);
