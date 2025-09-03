@@ -24,7 +24,7 @@ export const dom = {
   rankingTable: document.getElementById('ranking-table'),
   rankingChartContainer: document.getElementById('ranking-chart-container'),
   rankingPaginationControls: document.createElement('div'),
-  rankingMetricToggle: document.getElementById('ranking-metric-toggle'), // 新增
+  rankingMetricToggle: document.getElementById('ranking-metric-toggle'),
   priceBandReportContent: document.getElementById('price-band-report-content'),
   priceBandTable: document.getElementById('price-band-table'),
   priceBandChart: document.getElementById('price-band-chart'),
