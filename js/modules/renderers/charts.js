@@ -9,86 +9,117 @@ let salesVelocityChartInstance = null;
 let priceBandChartInstance = null;
 let rankingChartInstance = null;
 
-// ▼▼▼ 【已修改】將長條圖替換為樹狀圖 (Treemap) ▼▼▼
+// ▼▼▼ 【已修改，請用這整段函式取代舊的 renderRankingChart】 ▼▼▼
 /**
- * 渲染建案銷售總額佔比樹狀圖
+ * 渲染核心指標與排名的 Treemap 圖表
+ * @param {Array<Object>} data - The data for the chart.
+ * @param {string} metric - The metric to display ('saleAmountSum', 'houseAreaSum', 'transactionCount').
  */
-export function renderRankingChart() {
+export function renderRankingChart(data, metric) {
+    const container = dom.rankingChartContainer; // 使用 dom 物件
+    if (!container) return;
+
+    // 每次渲染前先銷毀舊的圖表實例
     if (rankingChartInstance) {
         rankingChartInstance.destroy();
         rankingChartInstance = null;
     }
-
-    if (!state.analysisDataCache || !state.analysisDataCache.projectRanking || state.analysisDataCache.projectRanking.length === 0) {
-        dom.rankingChartContainer.innerHTML = '<p class="text-gray-500 p-4 text-center">無排名資料可繪製圖表。</p>';
+    
+    if (!data || data.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 p-4 text-center">無排名資料可繪製圖表。</p>';
         return;
     }
 
-    const { projectRanking } = state.analysisDataCache;
+    // 根據不同指標定義圖表設定
+    const metricConfig = {
+        saleAmountSum: {
+            title: '交易總價',
+            unit: '萬元',
+            formatter: (val) => `${formatToTenThousand(val)} 萬元`
+        },
+        houseAreaSum: {
+            title: '房屋面積',
+            unit: '坪',
+            formatter: (val) => `${formatNumber(val.toFixed(2))} 坪`
+        },
+        transactionCount: {
+            title: '資料筆數',
+            unit: '筆',
+            formatter: (val) => `${val} 筆`
+        }
+    };
 
-    // 準備 Treemap 所需的資料格式：{ x: '建案名', y: 銷售總額 }
-    const seriesData = projectRanking.map(p => ({
-        x: p.projectName,
-        y: Math.round(p.saleAmountSum)
+    const currentConfig = metricConfig[metric];
+    if (!currentConfig) {
+        container.innerHTML = `<p class="text-gray-400">選擇的指標無效。</p>`;
+        return;
+    }
+
+    // 準備圖表 series data
+    const seriesData = data.map(item => ({
+        x: item.projectName,
+        y: item[metric] || 0 // 確保 y 有值
     }));
+
+    // 計算總量，用於計算百分比
+    const totalValue = seriesData.reduce((sum, item) => sum + item.y, 0);
 
     const options = {
         series: [{
-            name: '銷售總額',
-            data: seriesData
+            data: seriesData,
         }],
         chart: {
-            type: 'treemap', // <-- 圖表類型已修改
+            type: 'treemap',
             height: 450,
-            background: 'transparent',
-            toolbar: { 
-                show: true,
-                tools: {
-                    download: true,
-                    selection: false,
-                    zoom: false,
-                    zoomin: false,
-                    zoomout: false,
-                    pan: false,
-                    reset: false
-                }
+            toolbar: {
+                show: true
             },
-            foreColor: '#e5e7eb'
+            background: 'transparent',
+            foreColor: '#a0aec0',
+        },
+        theme: {
+            mode: 'dark'
         },
         title: {
-            text: '建案銷售總額佔比 (Treemap)',
+            text: `建案排名 Treemap (${currentConfig.title})`,
             align: 'center',
             style: {
-                fontSize: '16px',
-                color: '#e5e7eb'
+                fontSize: '18px',
+                fontWeight: 'bold',
+                color: '#e2e8f0'
             }
         },
         plotOptions: {
             treemap: {
-                distributed: true, // 讓每個方塊都有不同顏色
-                enableShades: true, // 啟用顏色深淺變化
-                colorScale: {
-                    // 顏色範圍：從淺紫到深紫
-                    ranges: [
-                        { from: 0, to: 100000, color: '#a78bfa' },
-                        { from: 100001, to: 500000, color: '#8b5cf6' },
-                        { from: 500001, to: 1000000, color: '#7c3aed' },
-                        { from: 1000001, to: Infinity, color: '#6d28d9' }
-                    ]
-                }
+                distributed: true,
+                enableShades: false,
+                useFillColorAsStroke: true,
             }
         },
+        colors: [ // 定義一個顏色陣列供圖表循環使用
+            THEME_COLORS['purple-accent'],
+            THEME_COLORS['cyan-accent'],
+            THEME_COLORS['blue-accent'],
+            '#5a67d8',
+            '#805ad5',
+            '#0ca5e9',
+            '#0891b2',
+            '#6b46c1',
+        ],
         tooltip: {
             theme: 'dark',
-            y: {
-                formatter: function(value) {
-                    return `${value.toLocaleString()} 萬`;
-                },
-                title: {
-                    formatter: function(seriesName) {
-                        return seriesName + ':';
-                    }
-                }
+            custom: function({ series, seriesIndex, dataPointIndex, w }) {
+                const value = w.globals.series[seriesIndex][dataPointIndex];
+                const name = w.globals.labels[dataPointIndex];
+                const percentage = totalValue > 0 ? (value / totalValue * 100).toFixed(2) : 0;
+
+                return `
+                    <div class="apexcharts-tooltip-custom">
+                        <div class="font-bold text-base mb-1">${name}</div>
+                        <div>${currentConfig.title}: <strong>${currentConfig.formatter(value)}</strong></div>
+                        <div>佔比: <strong>${percentage}%</strong></div>
+                    </div>
+                `;
             }
         },
         noData: {
@@ -96,7 +127,7 @@ export function renderRankingChart() {
         }
     };
 
-    rankingChartInstance = new ApexCharts(dom.rankingChartContainer, options);
+    rankingChartInstance = new ApexCharts(container, options);
     rankingChartInstance.render();
 }
 // ▲▲▲ 【修改結束】 ▲▲▲
