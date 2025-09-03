@@ -3,7 +3,7 @@
 import { dom } from '../dom.js';
 import { state } from '../state.js';
 import { renderHeatmapDetailsTable } from './tables.js';
-import { THEME_COLORS } from '../config.js';
+import { THEME_COLORS } from '../config.js'; // 引入佈景主題顏色
 
 // --- 全局圖表實例 ---
 let salesVelocityChartInstance = null;
@@ -46,9 +46,10 @@ export function renderRankingChart() {
         }[sortKey];
 
         const sortedRanking = [...projectRanking]
-            .filter(p => p[sortKey] != null && p[sortKey] > 0)
+            .filter(p => p[sortKey] != null && p[sortKey] > 0) // 過濾掉無效或為零的價格數據
             .sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));
         
+        // 只取前 20 名並反轉，以符合長條圖由上而下的顯示習慣
         const chartData = sortedRanking.slice(0, 20).reverse();
 
         options = {
@@ -67,6 +68,9 @@ export function renderRankingChart() {
                 bar: {
                     horizontal: true,
                     borderRadius: 2,
+                    dataLabels: {
+                        position: 'top',
+                    }
                 }
             },
             dataLabels: {
@@ -78,7 +82,7 @@ export function renderRankingChart() {
                 formatter: function(val) {
                     return val.toLocaleString(undefined, {maximumFractionDigits: 2});
                 },
-                offsetX: 10,
+                offsetX: 7,
                 dropShadow: {
                   enabled: true,
                   top: 1, left: 1, blur: 1, color: '#000', opacity: 0.6
@@ -95,24 +99,10 @@ export function renderRankingChart() {
                 }
             },
             yaxis: {
-                // ▼▼▼ 【最終根本修正】 ▼▼▼
                 labels: {
-                    style: { 
-                        colors: THEME_COLORS['text-dark'], 
-                        fontSize: '12px',
-                        fontFamily: 'Noto Sans TC, sans-serif'
-                    },
-                    // 1. 強制為 Y 軸標籤保留一個寬闊的固定區域
-                    minWidth: 150, 
-                    maxWidth: 200,
-
-                    // 2. 讓文字在保留區內靠右對齊，創造出與圖表間的視覺間隔
-                    align: 'right', 
-
-                    // 3. 微調文字位置，讓它更置中好看
-                    offsetX: -10
+                    style: { colors: THEME_COLORS['text-dark'], fontSize: '11px' },
+                    align: 'right'
                 }
-                // ▲▲▲ 【修正結束】 ▲▲▲
             },
             title: {
                 text: chartConfig.title,
@@ -131,18 +121,13 @@ export function renderRankingChart() {
             grid: {
                 borderColor: '#374151',
                 xaxis: { lines: { show: true } },
-                yaxis: { lines: { show: false } },
-                // ▼▼▼ 移除之前錯誤的 padding 設置，回到正常的內邊距 ▼▼▼
-                padding: {
-                    left: 20,
-                    right: 40 // 也給右側一點空間，避免數字標籤被截斷
-                }
+                yaxis: { lines: { show: false } }
             },
             noData: { text: '無資料可顯示' }
         };
 
     } else {
-        // --- 方塊圖 (Treemap) 設定 ---
+        // --- 方塊圖 (Treemap) 設定 (維持原樣) ---
         const chartConfig = {
             saleAmountSum: { title: '建案銷售總額佔比', unit: '萬', yLabel: '銷售總額' },
             houseAreaSum: { title: '建案房屋面積佔比', unit: '坪', yLabel: '房屋面積' },
@@ -557,22 +542,27 @@ export function renderAreaHeatmap() {
                     const roomType = state.selectedVelocityRooms[dataPointIndex];
                     const [lower, upper] = areaRange.split('-').map(parseFloat);
 
+                    // ▼▼▼【已根據您的要求修正】▼▼▼
+                    // 移除第四站邏輯，不符合前三站的都歸類為"其他"
                     const getRoomCategory = (record) => {
                         const buildingType = record['建物型態'] || '';
                         const mainPurpose = record['主要用途'] || '';
                         const rooms = record['房數'];
                         const houseArea = record['房屋面積(坪)'];
 
+                        // 優先級 1: 特殊商業用途
                         if (buildingType.includes('店舖') || buildingType.includes('店面')) return '店舖';
                         if (buildingType.includes('工廠') || buildingType.includes('倉庫') || buildingType.includes('廠辦')) return '廠辦/工廠';
                         if (mainPurpose.includes('商業') || buildingType.includes('辦公') || buildingType.includes('事務所')) return '辦公/事務所';
 
+                        // 優先級 2: 特殊住宅格局 (0房)
                         const isResidentialBuilding = buildingType.includes('住宅大樓') || buildingType.includes('華廈');
                         if (isResidentialBuilding && rooms === 0) {
                             if (houseArea > 35) return '毛胚';
                             if (houseArea <= 35) return '套房';
                         }
 
+                        // 優先級 3: 標準住宅房型
                         if (typeof rooms === 'number' && !isNaN(rooms)) {
                             if (rooms === 1) return '1房';
                             if (rooms === 2) return '2房';
@@ -581,8 +571,12 @@ export function renderAreaHeatmap() {
                             if (rooms >= 5) return '5房以上';
                         }
                         
+                        // ▼▼▼【第四站備用邏輯已移除】▼▼▼
+
+                        // 最終備用選項：以上皆不符合者，歸於此類
                         return '其他'; 
                     };
+                    // ▲▲▲【修改結束】▲▲▲
 
                     const matchingTransactions = state.analysisDataCache.transactionDetails.filter(tx => {
                         const txRoomType = getRoomCategory(tx);
@@ -606,12 +600,15 @@ export function renderAreaHeatmap() {
                         
                         const safeDivide = (a, b) => b > 0 ? a / b : 0;
 
+                        // 中位數
                         const medianPrice = prices.length > 0 ? (prices.length % 2 === 0 ? (prices[prices.length / 2 - 1] + prices[prices.length / 2]) / 2 : prices[Math.floor(prices.length / 2)]) : 0;
                         const medianUnitPrice = unitPrices.length > 0 ? (unitPrices.length % 2 === 0 ? (unitPrices[unitPrices.length / 2 - 1] + unitPrices[unitPrices.length / 2]) / 2 : unitPrices[Math.floor(unitPrices.length / 2)]) : 0;
                         
+                        // 算術平均
                         const arithmeticAvgPrice = safeDivide(prices.reduce((s, p) => s + p, 0), prices.length);
                         const arithmeticAvgUnitPrice = safeDivide(unitPrices.reduce((s, p) => s + p, 0), unitPrices.length);
 
+                        // 加權平均
                         const totalHousePrice = txs.reduce((s, t) => s + (t['房屋總價(萬)'] || 0), 0);
                         const totalArea = txs.reduce((s, t) => s + (t['房屋面積(坪)'] || 0), 0);
                         const weightedAvgUnitPrice = safeDivide(totalHousePrice, totalArea);
@@ -711,5 +708,4 @@ export function renderAreaHeatmap() {
 
     state.areaHeatmapChart = new ApexCharts(dom.areaHeatmapChart, options);
     state.areaHeatmapChart.render();
-}
 }
