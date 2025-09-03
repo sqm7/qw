@@ -11,9 +11,9 @@ let priceBandChartInstance = null;
 let rankingChartInstance = null;
 
 /**
- * 根據當前排序的指標，動態渲染核心指標與排名的圖表。
- * @description 如果指標是關於總量（總價、面積、筆數），則顯示 Treemap (方塊圖)。
- * 如果指標是關於價格（均價、高低價、中位數），則顯示 Bar Chart (長條圖)。
+ * 渲染核心指標與排名的圖表
+ * @description 此函式現在會根據 state.currentSort.key 動態切換 Treemap 和 Bar Chart。
+ * Bar Chart 增加了 Y 軸標籤的間距與對齊樣式。
  */
 export function renderRankingChart() {
     if (rankingChartInstance) {
@@ -27,39 +27,44 @@ export function renderRankingChart() {
     }
 
     const { projectRanking } = state.analysisDataCache;
-    const sortKey = state.currentSort.key;
+    const sortKey = state.currentSort.key; // 獲取當前的排序指標
 
-    // 定義哪些指標應使用長條圖
+    // ▼▼▼ 【修改處】判斷要顯示長條圖還是方塊圖 ▼▼▼
     const barChartKeys = ['averagePrice', 'minPrice', 'maxPrice', 'medianPrice', 'avgParkingPrice'];
     const isBarChart = barChartKeys.includes(sortKey);
 
-    let options;
-
     if (isBarChart) {
-        // --- 長條圖設定 ---
-        const chartConfig = {
-            averagePrice: { title: '建案平均單價排行 (Top 20)', unit: '萬/坪', yLabel: '平均單價' },
-            minPrice: { title: '建案最低單價排行 (Top 20)', unit: '萬/坪', yLabel: '最低單價' },
-            maxPrice: { title: '建案最高單價排行 (Top 20)', unit: '萬/坪', yLabel: '最高單價' },
-            medianPrice: { title: '建案單價中位數排行 (Top 20)', unit: '萬/坪', yLabel: '單價中位數' },
-            avgParkingPrice: { title: '建案車位平均單價排行 (Top 20)', unit: '萬', yLabel: '車位均價' }
+        // --- 水平長條圖邏輯 (您要求修改的部分) ---
+        const keyDetails = {
+            averagePrice: { title: '建案平均單價排行', unit: '萬/坪' },
+            minPrice: { title: '建案最低單價排行', unit: '萬/坪' },
+            maxPrice: { title: '建案最高單價排行', unit: '萬/坪' },
+            medianPrice: { title: '建案單價中位數排行', unit: '萬/坪' },
+            avgParkingPrice: { title: '車位平均單價排行', unit: '萬' },
         }[sortKey];
 
-        const sortedRanking = [...projectRanking]
-            .filter(p => p[sortKey] != null && p[sortKey] > 0) // 過濾掉無效或為零的價格數據
-            .sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));
-        
-        // 只取前 20 名並反轉，以符合長條圖由上而下的顯示習慣
-        const chartData = sortedRanking.slice(0, 20).reverse();
+        // 過濾掉無效數據(如0元)，並進行排序以便圖表顯示
+        const sortedData = [...projectRanking]
+            .filter(p => p[sortKey] > 0)
+            .sort((a, b) => a[sortKey] - b[sortKey]) // 升序排列，長條圖會由上至下顯示從大到小
+            .slice(-30); // 只顯示前30名，避免圖表過於擁擠
 
-        options = {
+        if (sortedData.length === 0) {
+            dom.rankingChartContainer.innerHTML = '<p class="text-gray-500 p-4 text-center">此指標無有效資料可繪製長條圖。</p>';
+            return;
+        }
+
+        const options = {
             series: [{
-                name: chartConfig.yLabel,
-                data: chartData.map(p => parseFloat(p[sortKey].toFixed(2)))
+                name: keyDetails.unit,
+                data: sortedData.map(p => ({
+                    x: p.projectName,
+                    y: parseFloat(p[sortKey].toFixed(2))
+                }))
             }],
             chart: {
                 type: 'bar',
-                height: 600,
+                height: 800,
                 background: 'transparent',
                 toolbar: { show: true },
                 foreColor: THEME_COLORS['text-light']
@@ -67,7 +72,8 @@ export function renderRankingChart() {
             plotOptions: {
                 bar: {
                     horizontal: true,
-                    borderRadius: 2,
+                    barHeight: '80%',
+                    borderRadius: 4,
                     dataLabels: {
                         position: 'top',
                     }
@@ -75,59 +81,72 @@ export function renderRankingChart() {
             },
             dataLabels: {
                 enabled: true,
-                textAnchor: 'start',
+                offsetX: 40,
                 style: {
-                    colors: [THEME_COLORS['text-light']]
+                    fontSize: '13px',
+                    colors: ['#ffffff']
                 },
-                formatter: function(val) {
-                    return val.toLocaleString(undefined, {maximumFractionDigits: 2});
+                background: {
+                    enabled: true,
+                    foreColor: '#000000',
+                    padding: 6,
+                    borderRadius: 2,
+                    borderWidth: 1,
+                    borderColor: '#4f4f4f',
+                    opacity: 0.6,
                 },
-                offsetX: 7,
-                dropShadow: {
-                  enabled: true,
-                  top: 1, left: 1, blur: 1, color: '#000', opacity: 0.6
+                formatter: function (val) {
+                    return val.toLocaleString();
                 }
             },
             xaxis: {
-                categories: chartData.map(p => p.projectName),
+                categories: sortedData.map(p => p.projectName),
                 title: {
-                    text: chartConfig.unit,
+                    text: keyDetails.unit,
                     style: { color: THEME_COLORS['text-dark'] }
                 },
                 labels: {
-                    style: { colors: THEME_COLORS['text-dark'] }
+                    style: { colors: [THEME_COLORS['text-dark']] }
                 }
             },
             yaxis: {
                 labels: {
-                    style: { colors: THEME_COLORS['text-dark'], fontSize: '11px' },
-                    align: 'right'
+                    // 【需求修改】增加與圖表的間距，並添加CSS class 以實現靠右對齊
+                    offsetX: -10, // 讓標籤向左移動10px，創造與圖表的間距
+                    style: {
+                        colors: [THEME_COLORS['text-light']],
+                        fontSize: '14px',
+                        cssClass: 'apexcharts-yaxis-label-right-align',
+                    },
                 }
             },
+            grid: {
+                borderColor: '#374151'
+            },
             title: {
-                text: chartConfig.title,
+                text: keyDetails.title,
                 align: 'center',
                 style: { fontSize: '16px', color: THEME_COLORS['text-light'] }
             },
             tooltip: {
                 theme: 'dark',
+                x: {
+                    show: false
+                },
                 y: {
-                    title: { formatter: (seriesName) => seriesName + ':' },
-                    formatter: function(val) {
-                      return `${val.toLocaleString(undefined, {maximumFractionDigits: 2})} ${chartConfig.unit}`;
+                    title: {
+                        formatter: function () {
+                            return ''
+                        }
                     }
                 }
-            },
-            grid: {
-                borderColor: '#374151',
-                xaxis: { lines: { show: true } },
-                yaxis: { lines: { show: false } }
-            },
-            noData: { text: '無資料可顯示' }
+            }
         };
+        rankingChartInstance = new ApexCharts(dom.rankingChartContainer, options);
+        rankingChartInstance.render();
 
     } else {
-        // --- 方塊圖 (Treemap) 設定 (維持原樣) ---
+        // --- 原有的 Treemap (方塊樹圖) 邏輯 ---
         const chartConfig = {
             saleAmountSum: { title: '建案銷售總額佔比', unit: '萬', yLabel: '銷售總額' },
             houseAreaSum: { title: '建案房屋面積佔比', unit: '坪', yLabel: '房屋面積' },
@@ -140,13 +159,19 @@ export function renderRankingChart() {
             y: Math.round(p[sortKey] * 100) / 100
         }));
 
-        options = {
-            series: [{ name: chartConfig.yLabel, data: seriesData }],
+        const options = {
+            series: [{
+                name: chartConfig.yLabel,
+                data: seriesData
+            }],
             chart: {
                 type: 'treemap',
                 height: 450,
                 background: 'transparent',
-                toolbar: { show: true, tools: { download: true, selection: false, zoom: false, zoomin: false, zoomout: false, pan: false, reset: false }},
+                toolbar: { 
+                    show: true,
+                    tools: { download: true, selection: false, zoom: false, zoomin: false, zoomout: false, pan: false, reset: false }
+                },
                 foreColor: THEME_COLORS['text-light']
             },
             title: {
@@ -176,15 +201,20 @@ export function renderRankingChart() {
                         const formattedValue = value.toLocaleString(undefined, { maximumFractionDigits: 2 });
                         return `${formattedValue} ${chartConfig.unit} (${percentage}%)`;
                     },
-                    title: { formatter: (seriesName) => seriesName + ':' }
+                    title: {
+                        formatter: function(seriesName) {
+                            return seriesName + ':';
+                        }
+                    }
                 }
             },
             noData: { text: '無資料可顯示' }
         };
-    }
 
-    rankingChartInstance = new ApexCharts(dom.rankingChartContainer, options);
-    rankingChartInstance.render();
+        rankingChartInstance = new ApexCharts(dom.rankingChartContainer, options);
+        rankingChartInstance.render();
+    }
+    // ▲▲▲ 【修改結束】 ▲▲▲
 }
 
 
