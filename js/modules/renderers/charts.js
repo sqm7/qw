@@ -3,6 +3,7 @@
 import { dom } from '../dom.js';
 import { state } from '../state.js';
 import { renderHeatmapDetailsTable } from './tables.js';
+import { THEME_COLORS } from '../config.js';
 
 // --- 全局圖表實例 ---
 let salesVelocityChartInstance = null;
@@ -12,8 +13,9 @@ let rankingChartInstance = null;
 // ▼▼▼ 【已修改】將長條圖替換為樹狀圖 (Treemap) ▼▼▼
 /**
  * 渲染建案銷售總額佔比樹狀圖
+ * @param {string} metric 要顯示的指標，可以是 'saleAmountSum', 'houseAreaSum', 'transactionCount'
  */
-export function renderRankingChart() {
+export function renderRankingChart(metric = 'saleAmountSum') {
     if (rankingChartInstance) {
         rankingChartInstance.destroy();
         rankingChartInstance = null;
@@ -26,15 +28,30 @@ export function renderRankingChart() {
 
     const { projectRanking } = state.analysisDataCache;
 
-    // 準備 Treemap 所需的資料格式：{ x: '建案名', y: 銷售總額 }
+    // 1. 根據傳入的指標設定動態配置
+    const metricConfig = {
+        'saleAmountSum': { name: '銷售總額', label: '萬', title: '建案銷售總額佔比 (Treemap)', total: 0 },
+        'houseAreaSum': { name: '房屋面積', label: '坪', title: '建案房屋面積佔比 (Treemap)', total: 0 },
+        'transactionCount': { name: '交易筆數', label: '筆', title: '建案交易筆數佔比 (Treemap)', total: 0 }
+    };
+    const currentConfig = metricConfig[metric] || metricConfig['saleAmountSum'];
+    
+    // 計算總和以供百分比計算使用
+    currentConfig.total = projectRanking.reduce((sum, p) => sum + (p[metric] || 0), 0);
+
+    // 2. 準備 Treemap 所需的資料格式：{ x: '建案名', y: 指標數值 }
     const seriesData = projectRanking.map(p => ({
         x: p.projectName,
-        y: Math.round(p.saleAmountSum)
+        y: Math.round(p[metric] || 0)
     }));
 
+    // 3. 自定義顏色範圍以符合網站風格
+    const mainColor = THEME_COLORS['purple-accent'] || '#8b5cf6';
+    const lightColor = THEME_COLORS['cyan-accent'] || '#06b6d4';
+    
     const options = {
         series: [{
-            name: '銷售總額',
+            name: currentConfig.name,
             data: seriesData
         }],
         chart: {
@@ -56,7 +73,7 @@ export function renderRankingChart() {
             foreColor: '#e5e7eb'
         },
         title: {
-            text: '建案銷售總額佔比 (Treemap)',
+            text: currentConfig.title,
             align: 'center',
             style: {
                 fontSize: '16px',
@@ -82,7 +99,8 @@ export function renderRankingChart() {
             theme: 'dark',
             y: {
                 formatter: function(value) {
-                    return `${value.toLocaleString()} 萬`;
+                    const percentage = currentConfig.total > 0 ? (value / currentConfig.total * 100).toFixed(2) : 0;
+                    return `${value.toLocaleString()} ${currentConfig.label} (${percentage}%)`;
                 },
                 title: {
                     formatter: function(seriesName) {
