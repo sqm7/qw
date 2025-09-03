@@ -11,9 +11,9 @@ let priceBandChartInstance = null;
 let rankingChartInstance = null;
 
 /**
- * 渲染核心指標與排名的Treemap圖表
- * @description 此函式現在會根據 state.currentSort.key 動態切換數據，
- * 並在 tooltip 中顯示百分比，顏色也已更新。
+ * 根據當前排序的指標，動態渲染核心指標與排名的圖表。
+ * @description 如果指標是關於總量（總價、面積、筆數），則顯示 Treemap (方塊圖)。
+ * 如果指標是關於價格（均價、高低價、中位數），則顯示 Bar Chart (長條圖)。
  */
 export function renderRankingChart() {
     if (rankingChartInstance) {
@@ -27,92 +27,161 @@ export function renderRankingChart() {
     }
 
     const { projectRanking } = state.analysisDataCache;
-    const sortKey = state.currentSort.key; // 獲取當前的排序指標
+    const sortKey = state.currentSort.key;
 
-    // 根據排序指標決定圖表標題和數據單位
-    const chartConfig = {
-        saleAmountSum: { title: '建案銷售總額佔比', unit: '萬', yLabel: '銷售總額' },
-        houseAreaSum: { title: '建案房屋面積佔比', unit: '坪', yLabel: '房屋面積' },
-        transactionCount: { title: '建案交易筆數佔比', unit: '筆', yLabel: '資料筆數' }
-    }[sortKey] || { title: '建案銷售總額佔比', unit: '萬', yLabel: '銷售總額' }; // 預設
+    // 定義哪些指標應使用長條圖
+    const barChartKeys = ['averagePrice', 'minPrice', 'maxPrice', 'medianPrice', 'avgParkingPrice'];
+    const isBarChart = barChartKeys.includes(sortKey);
 
-    // 計算當前指標的總和，用於計算百分比
-    const totalValue = projectRanking.reduce((sum, p) => sum + (p[sortKey] || 0), 0);
+    let options;
 
-    // 準備 Treemap 所需的資料格式
-    const seriesData = projectRanking.map(p => ({
-        x: p.projectName,
-        y: Math.round(p[sortKey] * 100) / 100 // 處理小數點
-    }));
+    if (isBarChart) {
+        // --- 長條圖設定 ---
+        const chartConfig = {
+            averagePrice: { title: '建案平均單價排行 (Top 20)', unit: '萬/坪', yLabel: '平均單價' },
+            minPrice: { title: '建案最低單價排行 (Top 20)', unit: '萬/坪', yLabel: '最低單價' },
+            maxPrice: { title: '建案最高單價排行 (Top 20)', unit: '萬/坪', yLabel: '最高單價' },
+            medianPrice: { title: '建案單價中位數排行 (Top 20)', unit: '萬/坪', yLabel: '單價中位數' },
+            avgParkingPrice: { title: '建案車位平均單價排行 (Top 20)', unit: '萬', yLabel: '車位均價' }
+        }[sortKey];
 
-    const options = {
-        series: [{
-            name: chartConfig.yLabel,
-            data: seriesData
-        }],
-        chart: {
-            type: 'treemap',
-            height: 450,
-            background: 'transparent',
-            toolbar: { 
-                show: true,
-                tools: {
-                    download: true,
-                    selection: false,
-                    zoom: false,
-                    zoomin: false,
-                    zoomout: false,
-                    pan: false,
-                    reset: false
-                }
+        const sortedRanking = [...projectRanking]
+            .filter(p => p[sortKey] != null && p[sortKey] > 0) // 過濾掉無效或為零的價格數據
+            .sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));
+        
+        // 只取前 20 名並反轉，以符合長條圖由上而下的顯示習慣
+        const chartData = sortedRanking.slice(0, 20).reverse();
+
+        options = {
+            series: [{
+                name: chartConfig.yLabel,
+                data: chartData.map(p => parseFloat(p[sortKey].toFixed(2)))
+            }],
+            chart: {
+                type: 'bar',
+                height: 600,
+                background: 'transparent',
+                toolbar: { show: true },
+                foreColor: THEME_COLORS['text-light']
             },
-            foreColor: THEME_COLORS['text-light']
-        },
-        title: {
-            text: chartConfig.title,
-            align: 'center',
-            style: {
-                fontSize: '16px',
-                color: THEME_COLORS['text-light']
-            }
-        },
-        plotOptions: {
-            treemap: {
-                distributed: true,
-                enableShades: false, // 關閉陰影以使用自訂顏色
-                colorScale: {
-                    // 使用符合網站風格的顏色範圍
-                    ranges: [
-                        { from: 0, to: totalValue * 0.1, color: THEME_COLORS['cyan-accent'] },
-                        { from: totalValue * 0.1, to: totalValue * 0.3, color: '#4f91f7' },
-                        { from: totalValue * 0.3, to: totalValue * 0.6, color: '#7c3aed' },
-                        { from: totalValue * 0.6, to: Infinity, color: THEME_COLORS['purple-accent'] }
-                    ]
-                }
-            }
-        },
-        tooltip: {
-            theme: 'dark',
-            y: {
-                formatter: function(value) {
-                    // 計算並格式化百分比
-                    const percentage = totalValue > 0 ? ((value / totalValue) * 100).toFixed(2) : 0;
-                    const formattedValue = value.toLocaleString(undefined, {
-                        maximumFractionDigits: 2
-                    });
-                    return `${formattedValue} ${chartConfig.unit} (${percentage}%)`;
-                },
-                title: {
-                    formatter: function(seriesName) {
-                        return seriesName + ':';
+            plotOptions: {
+                bar: {
+                    horizontal: true,
+                    borderRadius: 2,
+                    dataLabels: {
+                        position: 'top',
                     }
                 }
-            }
-        },
-        noData: {
-            text: '無資料可顯示'
-        }
-    };
+            },
+            dataLabels: {
+                enabled: true,
+                textAnchor: 'start',
+                style: {
+                    colors: [THEME_COLORS['text-light']]
+                },
+                formatter: function(val) {
+                    return val.toLocaleString(undefined, {maximumFractionDigits: 2});
+                },
+                offsetX: 7,
+                dropShadow: {
+                  enabled: true,
+                  top: 1, left: 1, blur: 1, color: '#000', opacity: 0.6
+                }
+            },
+            xaxis: {
+                categories: chartData.map(p => p.projectName),
+                title: {
+                    text: chartConfig.unit,
+                    style: { color: THEME_COLORS['text-dark'] }
+                },
+                labels: {
+                    style: { colors: THEME_COLORS['text-dark'] }
+                }
+            },
+            yaxis: {
+                labels: {
+                    style: { colors: THEME_COLORS['text-dark'], fontSize: '11px' },
+                    align: 'right'
+                }
+            },
+            title: {
+                text: chartConfig.title,
+                align: 'center',
+                style: { fontSize: '16px', color: THEME_COLORS['text-light'] }
+            },
+            tooltip: {
+                theme: 'dark',
+                y: {
+                    title: { formatter: (seriesName) => seriesName + ':' },
+                    formatter: function(val) {
+                      return `${val.toLocaleString(undefined, {maximumFractionDigits: 2})} ${chartConfig.unit}`;
+                    }
+                }
+            },
+            grid: {
+                borderColor: '#374151',
+                xaxis: { lines: { show: true } },
+                yaxis: { lines: { show: false } }
+            },
+            noData: { text: '無資料可顯示' }
+        };
+
+    } else {
+        // --- 方塊圖 (Treemap) 設定 (維持原樣) ---
+        const chartConfig = {
+            saleAmountSum: { title: '建案銷售總額佔比', unit: '萬', yLabel: '銷售總額' },
+            houseAreaSum: { title: '建案房屋面積佔比', unit: '坪', yLabel: '房屋面積' },
+            transactionCount: { title: '建案交易筆數佔比', unit: '筆', yLabel: '資料筆數' }
+        }[sortKey] || { title: '建案銷售總額佔比', unit: '萬', yLabel: '銷售總額' };
+
+        const totalValue = projectRanking.reduce((sum, p) => sum + (p[sortKey] || 0), 0);
+        const seriesData = projectRanking.map(p => ({
+            x: p.projectName,
+            y: Math.round(p[sortKey] * 100) / 100
+        }));
+
+        options = {
+            series: [{ name: chartConfig.yLabel, data: seriesData }],
+            chart: {
+                type: 'treemap',
+                height: 450,
+                background: 'transparent',
+                toolbar: { show: true, tools: { download: true, selection: false, zoom: false, zoomin: false, zoomout: false, pan: false, reset: false }},
+                foreColor: THEME_COLORS['text-light']
+            },
+            title: {
+                text: chartConfig.title,
+                align: 'center',
+                style: { fontSize: '16px', color: THEME_COLORS['text-light'] }
+            },
+            plotOptions: {
+                treemap: {
+                    distributed: true,
+                    enableShades: false,
+                    colorScale: {
+                        ranges: [
+                            { from: 0, to: totalValue * 0.1, color: THEME_COLORS['cyan-accent'] },
+                            { from: totalValue * 0.1, to: totalValue * 0.3, color: '#4f91f7' },
+                            { from: totalValue * 0.3, to: totalValue * 0.6, color: '#7c3aed' },
+                            { from: totalValue * 0.6, to: Infinity, color: THEME_COLORS['purple-accent'] }
+                        ]
+                    }
+                }
+            },
+            tooltip: {
+                theme: 'dark',
+                y: {
+                    formatter: function(value) {
+                        const percentage = totalValue > 0 ? ((value / totalValue) * 100).toFixed(2) : 0;
+                        const formattedValue = value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                        return `${formattedValue} ${chartConfig.unit} (${percentage}%)`;
+                    },
+                    title: { formatter: (seriesName) => seriesName + ':' }
+                }
+            },
+            noData: { text: '無資料可顯示' }
+        };
+    }
 
     rankingChartInstance = new ApexCharts(dom.rankingChartContainer, options);
     rankingChartInstance.render();
