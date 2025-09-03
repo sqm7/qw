@@ -241,8 +241,6 @@ thead th { background-color: var(--color-dark-card); position: sticky; top: 0; z
 .velocity-table .sticky {
     border-right: 1px solid var(--color-disabled-bg);
 }
-/* ▲▲▲ 修改結束 ▲▲▲ */
-/* re-trigger deployment */
-.apexcharts-svg {
-    overflow: visible !important;
+.apexcharts-yaxis-label-right-align {
+    text-anchor: end;
 }
