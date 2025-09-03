@@ -5,6 +5,7 @@ import { countyCodeMap } from './config.js';
 
 // 使用一個物件來封裝所有狀態，方便管理和傳遞
 export const state = {
+    currentRankingMetric: 'saleAmountSum', // 預設為交易總價
     currentPage: 1,
     pageSize: 30,
     totalRecords: 0,
