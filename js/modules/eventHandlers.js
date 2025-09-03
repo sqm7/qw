@@ -284,6 +284,23 @@ export function handlePriceBandRoomFilterClick(e) {
     reportRenderer.renderPriceBandReport();
 }
 // ▲▲▲ 【修改結束】 ▲▲▲
+// ▼▼▼ 新增處 ▼▼▼
+export function handleRankingMetricToggle(e) {
+    const button = e.target.closest('.avg-type-btn');
+    if (!button || button.classList.contains('active')) return;
+
+    const metric = button.dataset.metric;
+    state.currentRankingMetric = metric;
+
+    dom.rankingMetricToggle.querySelector('.active').classList.remove('active');
+    button.classList.add('active');
+
+    // 重新渲染圖表
+    if (state.analysisDataCache) {
+        chartRenderer.renderRankingChart(state.currentRankingMetric);
+    }
+}
+// ▲▲▲ 新增結束 ▲▲▲
 
 export function handleVelocityRoomFilterClick(e) {
     const button = e.target.closest('.capsule-btn'); if (!button) return;
