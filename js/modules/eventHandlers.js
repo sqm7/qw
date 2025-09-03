@@ -20,7 +20,7 @@ export async function mainFetchData() {
         const filters = getFilters();
         const pagination = { page: state.currentPage, limit: state.pageSize };
         const result = await api.fetchData(filters, pagination);
-        
+
         state.totalRecords = result.count || 0;
         if (!result.data || result.data.length === 0) {
             ui.showMessage('找不到符合條件的資料。');
@@ -58,12 +58,17 @@ export async function mainAnalyzeData() {
         state.rankingCurrentPage = 1;
         reportRenderer.renderRankingReport();
         reportRenderer.renderPriceBandReport();
-        chartRenderer.renderPriceBandChart(); 
+        chartRenderer.renderPriceBandChart();
         reportRenderer.renderUnitPriceReport();
         reportRenderer.renderParkingAnalysisReport();
         reportRenderer.renderSalesVelocityReport();
         reportRenderer.renderPriceGridAnalysis();
         ui.switchTab('ranking-report');
+        
+        // ▼▼▼ 修改處：在完成所有分析後，首次繪製圖表時使用預設指標 ▼▼▼
+        chartRenderer.renderRankingChart(state.currentRankingMetric);
+        // ▲▲▲ 修改結束 ▼▼▼
+
     } catch(error) {
         console.error("數據分析失敗:", error);
         ui.showMessage(`數據分析失敗: ${error.message}`, true);
@@ -175,8 +180,6 @@ export function onDistrictSuggestionClick(e) {
     const target = e.target.closest('.suggestion-item'); if (!target) return;
     const name = target.dataset.name;
     const checkbox = target.querySelector('input[type="checkbox"]'); if (!name || !checkbox) return;
-    const allDistrictNames = districtData[dom.countySelect.value] || [];
-    const selectAllCheckbox = document.getElementById('district-select-all');
     setTimeout(() => {
         const isChecked = checkbox.checked;
         if (name === 'all') {
@@ -261,7 +264,6 @@ export function switchAverageType(type) {
     if (state.analysisDataCache) { reportRenderer.renderUnitPriceReport(); }
 }
 
-// ▼▼▼ 【修改處】 ▼▼▼
 export function handlePriceBandRoomFilterClick(e) {
     const button = e.target.closest('.capsule-btn');
     if (!button) return;
@@ -283,24 +285,6 @@ export function handlePriceBandRoomFilterClick(e) {
     // 這會使其行為與 '房型去化分析' 的篩選器一致
     reportRenderer.renderPriceBandReport();
 }
-// ▲▲▲ 【修改結束】 ▲▲▲
-// ▼▼▼ 新增處 ▼▼▼
-export function handleRankingMetricToggle(e) {
-    const button = e.target.closest('.avg-type-btn');
-    if (!button || button.classList.contains('active')) return;
-
-    const metric = button.dataset.metric;
-    state.currentRankingMetric = metric;
-
-    dom.rankingMetricToggle.querySelector('.active').classList.remove('active');
-    button.classList.add('active');
-
-    // 重新渲染圖表
-    if (state.analysisDataCache) {
-        chartRenderer.renderRankingChart(state.currentRankingMetric);
-    }
-}
-// ▲▲▲ 新增結束 ▲▲▲
 
 export function handleVelocityRoomFilterClick(e) {
     const button = e.target.closest('.capsule-btn'); if (!button) return;
@@ -329,7 +313,6 @@ export function handleVelocitySubTabClick(e) {
     chartRenderer.renderAreaHeatmap();
 }
 
-// ▼▼▼ 【新增處】處理熱力圖詳細數據的統計類型切換 ▼▼▼
 export function handleHeatmapMetricToggle(e) {
     const button = e.target.closest('.avg-type-btn');
     if (!button || button.classList.contains('active')) return;
@@ -340,12 +323,26 @@ export function handleHeatmapMetricToggle(e) {
     dom.heatmapMetricToggle.querySelector('.active').classList.remove('active');
     button.classList.add('active');
 
-    // 重新渲染表格
     if (state.lastHeatmapDetails) {
         tableRenderer.renderHeatmapDetailsTable();
     }
 }
-// ▲▲▲ 【新增結束】 ▲▲▲
+
+// ▼▼▼ 新增處：為新的排名圖表切換功能新增事件處理函式 ▼▼▼
+export function handleRankingMetricToggle(e) {
+    const button = e.target.closest('.avg-type-btn');
+    if (!button || button.classList.contains('active')) return;
+    const metric = button.dataset.metric;
+    state.currentRankingMetric = metric;
+
+    dom.rankingMetricToggle.querySelector('.active').classList.remove('active');
+    button.classList.add('active');
+
+    if (state.analysisDataCache) {
+        chartRenderer.renderRankingChart(state.currentRankingMetric);
+    }
+}
+// ▲▲▲ 新增結束 ▼▼▼
 
 export function handlePriceGridProjectFilterClick(e) {
     const button = e.target.closest('.capsule-btn');
@@ -509,3 +506,148 @@ export function handleGlobalClick(e) {
         heatmapRenderer.applyHeatmapGridFilter();
     }
 }
+
+// ▼▼▼ 新增處：為新的排名圖表切換功能註冊事件監聽器 ▼▼▼
+function initializeRankingToggle() {
+    dom.rankingMetricToggle.addEventListener('click', (e) => {
+        if (e.target.matches('.avg-type-btn')) handleRankingMetricToggle(e);
+    });
+}
+// ▲▲▲ 新增結束 ▼▼▼
+
+
+function initialize() {
+    api.checkAuth().catch(err => {
+        console.error("認證檢查失敗:", err);
+    });
+    
+    setupUserStatus(); 
+
+    try {
+        const countyNames = Object.keys(districtData);
+        countyNames.forEach(name => {
+            dom.countySelect.add(new Option(name, name));
+        });
+    } catch (error) {
+        console.error("填入縣市資料時發生錯誤:", error);
+        ui.showMessage("系統初始化失敗：載入縣市資料時出錯。", true);
+        return;
+    }
+    
+    dom.rankingPaginationControls.id = 'ranking-pagination-controls';
+    dom.rankingPaginationControls.className = 'flex justify-between items-center mt-4 text-sm text-gray-400';
+    dom.rankingReportContent.querySelector('.overflow-x-auto').insertAdjacentElement('afterend', dom.rankingPaginationControls);
+
+    dom.searchBtn.addEventListener('click', () => { state.currentPage = 1; mainFetchData(); });
+    dom.analyzeBtn.addEventListener('click', mainAnalyzeData);
+    dom.countySelect.addEventListener('change', updateDistrictOptions);
+    dom.typeSelect.addEventListener('change', toggleAnalyzeButtonState);
+    
+    dom.dateRangeSelect.addEventListener('change', handleDateRangeChange);
+    dom.dateStartInput.addEventListener('input', () => { if (document.activeElement === dom.dateStartInput) dom.dateRangeSelect.value = 'custom'; });
+    dom.dateEndInput.addEventListener('input', () => { if (document.activeElement === dom.dateEndInput) dom.dateRangeSelect.value = 'custom'; });
+    dom.setTodayBtn.addEventListener('click', () => {
+        dom.dateEndInput.value = ui.formatDate(new Date());
+        dom.dateRangeSelect.value = 'custom';
+    });
+
+    dom.districtContainer.addEventListener('click', onDistrictContainerClick);
+    dom.districtSuggestions.addEventListener('click', onDistrictSuggestionClick);
+    dom.clearDistrictsBtn.addEventListener('click', clearSelectedDistricts);
+
+    dom.projectNameInput.addEventListener('focus', onProjectInputFocus);
+    dom.projectNameInput.addEventListener('input', onProjectInput);
+    dom.projectNameSuggestions.addEventListener('click', onSuggestionClick);
+    dom.projectNameContainer.addEventListener('click', e => { 
+        if (e.target.classList.contains('multi-tag-remove')) removeProject(e.target.dataset.name); 
+    });
+    dom.clearProjectsBtn.addEventListener('click', clearSelectedProjects);
+    
+    dom.modalCloseBtn.addEventListener('click', () => dom.modal.classList.add('hidden'));
+    dom.resultsTable.addEventListener('click', e => { 
+        const detailsBtn = e.target.closest('.details-btn');
+        if (detailsBtn) mainShowSubTableDetails(detailsBtn); 
+    });
+    document.addEventListener('click', handleGlobalClick);
+
+    dom.tabsContainer.addEventListener('click', (e) => {
+        if (e.target.matches('.tab-button')) {
+            const tabId = e.target.dataset.tab;
+            ui.switchTab(tabId);
+            if (tabId === 'velocity-report' && state.analysisDataCache) {
+                chartRenderer.renderSalesVelocityChart();
+                chartRenderer.renderAreaHeatmap();
+            }
+        }
+    });
+    dom.rankingTable.addEventListener('click', (e) => {
+        const header = e.target.closest('.sortable-th');
+        if (!header) return;
+        const sortKey = header.dataset.sortKey;
+        if (state.currentSort.key === sortKey) {
+            state.currentSort.order = state.currentSort.order === 'desc' ? 'asc' : 'desc';
+        } else {
+            state.currentSort.key = sortKey;
+            state.currentSort.order = 'desc';
+        }
+        state.rankingCurrentPage = 1;
+        reportRenderer.renderRankingReport();
+    });
+    dom.avgTypeToggle.addEventListener('click', (e) => { 
+        if (e.target.matches('.avg-type-btn')) switchAverageType(e.target.dataset.type); 
+    });
+    
+    dom.priceBandRoomFilterContainer.addEventListener('click', handlePriceBandRoomFilterClick);
+    dom.velocityRoomFilterContainer.addEventListener('click', handleVelocityRoomFilterClick);
+    dom.velocitySubTabsContainer.addEventListener('click', handleVelocitySubTabClick);
+    dom.priceGridProjectFilterContainer.addEventListener('click', handlePriceGridProjectFilterClick);
+    dom.analyzeHeatmapBtn.addEventListener('click', analyzeHeatmap);
+    dom.backToGridBtn.addEventListener('click', handleBackToGrid);
+    dom.heatmapLegendContainer.addEventListener('click', handleLegendClick);
+    
+    dom.heatmapMetricToggle.addEventListener('click', handleHeatmapMetricToggle);
+
+    dom.heatmapIntervalInput.addEventListener('change', chartRenderer.renderAreaHeatmap);
+    dom.heatmapMinAreaInput.addEventListener('change', chartRenderer.renderAreaHeatmap);
+    dom.heatmapMaxAreaInput.addEventListener('change', chartRenderer.renderAreaHeatmap);
+    dom.heatmapIntervalIncrementBtn.addEventListener('click', () => {
+        const input = dom.heatmapIntervalInput;
+        const step = parseFloat(input.step) || 1;
+        const max = parseFloat(input.max) || 10;
+        let newValue = (parseFloat(input.value) || 0) + step;
+        if (newValue > max) newValue = max;
+        input.value = newValue;
+        chartRenderer.renderAreaHeatmap();
+    });
+    dom.heatmapIntervalDecrementBtn.addEventListener('click', () => {
+        const input = dom.heatmapIntervalInput;
+        const step = parseFloat(input.step) || 1;
+        const min = parseFloat(input.min) || 1;
+        let newValue = (parseFloat(input.value) || 0) - step;
+        if (newValue < min) newValue = min;
+        input.value = newValue;
+        chartRenderer.renderAreaHeatmap();
+    });
+
+    dom.sharePriceGridBtn.addEventListener('click', () => handleShareClick('price_grid'));
+    dom.shareModalCloseBtn.addEventListener('click', () => dom.shareModal.classList.add('hidden'));
+    dom.copyShareUrlBtn.addEventListener('click', copyShareUrl);
+
+    document.addEventListener('pageChange', (e) => {
+        if (e.detail.type === 'main') {
+            mainFetchData();
+        } else if (e.detail.type === 'ranking') {
+            reportRenderer.renderRankingReport();
+        }
+    });
+
+    // ▼▼▼ 新增處：為新的排名圖表切換功能註冊事件監聽器 ▼▼▼
+    initializeRankingToggle();
+    // ▲▲▲ 新增結束 ▼▼▼
+
+    handleDateRangeChange();
+    toggleAnalyzeButtonState();
+    updateDistrictOptions();
+}
+
+initialize();
