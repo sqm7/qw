@@ -3,7 +3,7 @@
 import { dom } from '../dom.js';
 import { state } from '../state.js';
 import { renderHeatmapDetailsTable } from './tables.js';
-import { THEME_COLORS } from '../config.js'; // 引入佈景主題顏色
+import { THEME_COLORS } from '../config.js';
 
 // --- 全局圖表實例 ---
 let salesVelocityChartInstance = null;
@@ -99,7 +99,8 @@ export function renderRankingChart() {
                 labels: {
                     style: { 
                         colors: THEME_COLORS['text-dark'], 
-                        fontSize: '12px' 
+                        fontSize: '12px',
+                        fontFamily: 'Noto Sans TC, sans-serif'
                     },
                     // 1. 強制為 Y 軸標籤保留一個寬闊的固定區域
                     minWidth: 150, 
@@ -134,7 +135,7 @@ export function renderRankingChart() {
                 // ▼▼▼ 移除之前錯誤的 padding 設置，回到正常的內邊距 ▼▼▼
                 padding: {
                     left: 20,
-                    right: 30 // 也給右側一點空間，避免數字標籤被截斷
+                    right: 40 // 也給右側一點空間，避免數字標籤被截斷
                 }
             },
             noData: { text: '無資料可顯示' }
@@ -710,4 +711,5 @@ export function renderAreaHeatmap() {
 
     state.areaHeatmapChart = new ApexCharts(dom.areaHeatmapChart, options);
     state.areaHeatmapChart.render();
+}
 }
