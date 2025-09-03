@@ -3,15 +3,17 @@
 import { dom } from '../dom.js';
 import { state } from '../state.js';
 import { renderHeatmapDetailsTable } from './tables.js';
+import { THEME_COLORS } from '../config.js'; // 引入佈景主題顏色
 
 // --- 全局圖表實例 ---
 let salesVelocityChartInstance = null;
 let priceBandChartInstance = null;
 let rankingChartInstance = null;
 
-// ▼▼▼ 【已修改】將長條圖替換為樹狀圖 (Treemap) ▼▼▼
 /**
- * 渲染建案銷售總額佔比樹狀圖
+ * 渲染核心指標與排名的Treemap圖表
+ * @description 此函式現在會根據 state.currentSort.key 動態切換數據，
+ * 並在 tooltip 中顯示百分比，顏色也已更新。
  */
 export function renderRankingChart() {
     if (rankingChartInstance) {
@@ -25,20 +27,31 @@ export function renderRankingChart() {
     }
 
     const { projectRanking } = state.analysisDataCache;
+    const sortKey = state.currentSort.key; // 獲取當前的排序指標
 
-    // 準備 Treemap 所需的資料格式：{ x: '建案名', y: 銷售總額 }
+    // 根據排序指標決定圖表標題和數據單位
+    const chartConfig = {
+        saleAmountSum: { title: '建案銷售總額佔比', unit: '萬', yLabel: '銷售總額' },
+        houseAreaSum: { title: '建案房屋面積佔比', unit: '坪', yLabel: '房屋面積' },
+        transactionCount: { title: '建案交易筆數佔比', unit: '筆', yLabel: '資料筆數' }
+    }[sortKey] || { title: '建案銷售總額佔比', unit: '萬', yLabel: '銷售總額' }; // 預設
+
+    // 計算當前指標的總和，用於計算百分比
+    const totalValue = projectRanking.reduce((sum, p) => sum + (p[sortKey] || 0), 0);
+
+    // 準備 Treemap 所需的資料格式
     const seriesData = projectRanking.map(p => ({
         x: p.projectName,
-        y: Math.round(p.saleAmountSum)
+        y: Math.round(p[sortKey] * 100) / 100 // 處理小數點
     }));
 
     const options = {
         series: [{
-            name: '銷售總額',
+            name: chartConfig.yLabel,
             data: seriesData
         }],
         chart: {
-            type: 'treemap', // <-- 圖表類型已修改
+            type: 'treemap',
             height: 450,
             background: 'transparent',
             toolbar: { 
@@ -53,27 +66,27 @@ export function renderRankingChart() {
                     reset: false
                 }
             },
-            foreColor: '#e5e7eb'
+            foreColor: THEME_COLORS['text-light']
         },
         title: {
-            text: '建案銷售總額佔比 (Treemap)',
+            text: chartConfig.title,
             align: 'center',
             style: {
                 fontSize: '16px',
-                color: '#e5e7eb'
+                color: THEME_COLORS['text-light']
             }
         },
         plotOptions: {
             treemap: {
-                distributed: true, // 讓每個方塊都有不同顏色
-                enableShades: true, // 啟用顏色深淺變化
+                distributed: true,
+                enableShades: false, // 關閉陰影以使用自訂顏色
                 colorScale: {
-                    // 顏色範圍：從淺紫到深紫
+                    // 使用符合網站風格的顏色範圍
                     ranges: [
-                        { from: 0, to: 100000, color: '#a78bfa' },
-                        { from: 100001, to: 500000, color: '#8b5cf6' },
-                        { from: 500001, to: 1000000, color: '#7c3aed' },
-                        { from: 1000001, to: Infinity, color: '#6d28d9' }
+                        { from: 0, to: totalValue * 0.1, color: THEME_COLORS['cyan-accent'] },
+                        { from: totalValue * 0.1, to: totalValue * 0.3, color: '#4f91f7' },
+                        { from: totalValue * 0.3, to: totalValue * 0.6, color: '#7c3aed' },
+                        { from: totalValue * 0.6, to: Infinity, color: THEME_COLORS['purple-accent'] }
                     ]
                 }
             }
@@ -82,7 +95,12 @@ export function renderRankingChart() {
             theme: 'dark',
             y: {
                 formatter: function(value) {
-                    return `${value.toLocaleString()} 萬`;
+                    // 計算並格式化百分比
+                    const percentage = totalValue > 0 ? ((value / totalValue) * 100).toFixed(2) : 0;
+                    const formattedValue = value.toLocaleString(undefined, {
+                        maximumFractionDigits: 2
+                    });
+                    return `${formattedValue} ${chartConfig.unit} (${percentage}%)`;
                 },
                 title: {
                     formatter: function(seriesName) {
@@ -99,7 +117,6 @@ export function renderRankingChart() {
     rankingChartInstance = new ApexCharts(dom.rankingChartContainer, options);
     rankingChartInstance.render();
 }
-// ▲▲▲ 【修改結束】 ▲▲▲
 
 
 /**
