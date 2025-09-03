@@ -51,10 +51,6 @@ export function renderRankingChart() {
         
         const chartData = sortedRanking.slice(0, 20).reverse();
 
-        // 動態計算左側邊距，給予足夠空間
-        const longestLabelLength = chartData.reduce((max, p) => Math.max(max, p.projectName.length), 0);
-        const dynamicPadding = Math.max(100, longestLabelLength * 12); // 根據最長建案名稱的長度估算 padding
-
         options = {
             series: [{
                 name: chartConfig.yLabel,
@@ -99,15 +95,23 @@ export function renderRankingChart() {
                 }
             },
             yaxis: {
+                // ▼▼▼ 【最終根本修正】 ▼▼▼
                 labels: {
                     style: { 
                         colors: THEME_COLORS['text-dark'], 
-                        fontSize: '11px' 
+                        fontSize: '12px' 
                     },
-                    align: 'right',
-                    // ▼▼▼ 【修改處】增加一個小的偏移量，讓文字不要完全貼著軸線 ▼▼▼
-                    offsetX: -5,
+                    // 1. 強制為 Y 軸標籤保留一個寬闊的固定區域
+                    minWidth: 150, 
+                    maxWidth: 200,
+
+                    // 2. 讓文字在保留區內靠右對齊，創造出與圖表間的視覺間隔
+                    align: 'right', 
+
+                    // 3. 微調文字位置，讓它更置中好看
+                    offsetX: -10
                 }
+                // ▲▲▲ 【修正結束】 ▲▲▲
             },
             title: {
                 text: chartConfig.title,
@@ -127,11 +131,11 @@ export function renderRankingChart() {
                 borderColor: '#374151',
                 xaxis: { lines: { show: true } },
                 yaxis: { lines: { show: false } },
-                // ▼▼▼ 【修改處】使用上面動態計算的 padding ▼▼▼
+                // ▼▼▼ 移除之前錯誤的 padding 設置，回到正常的內邊距 ▼▼▼
                 padding: {
-                    left: dynamicPadding
+                    left: 20,
+                    right: 30 // 也給右側一點空間，避免數字標籤被截斷
                 }
-                // ▲▲▲ 【修改結束】 ▲▲▲
             },
             noData: { text: '無資料可顯示' }
         };
