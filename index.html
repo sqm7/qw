@@ -130,21 +130,14 @@
        
         <div id="ranking-report-content" class="tab-content">
            <div id="metric-cards-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8"></div>
-            <div id="ranking-report-content" class="tab-content">
-    <div id="metric-cards-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8"></div>
-    <div class="report-header flex justify-between items-center mb-4">
-        <h3 class="report-section-title mb-0">建案銷量分佈圖</h3>
-        <div id="ranking-metric-toggle" class="inline-flex bg-dark-card p-1 rounded-lg">
-            <button data-metric="saleAmountSum" class="avg-type-btn active px-4 py-1 text-sm font-semibold rounded-md transition-colors">交易總價</button>
-            <button data-metric="houseAreaSum" class="avg-type-btn px-4 py-1 text-sm font-semibold rounded-md transition-colors">房屋面積</button>
-            <button data-metric="transactionCount" class="avg-type-btn px-4 py-1 text-sm font-semibold rounded-md transition-colors">交易筆數</button>
-        </div>
-    </div>
-    <div id="ranking-chart-container" class="mb-8"></div>
-    <div class="overflow-x-auto">
-        <table id="ranking-table" class="min-w-full divide-y divide-gray-800"></table>
-    </div>
-</div>
+           <div class="report-header flex justify-between items-center mb-4">
+                <h3 class="report-section-title mb-0">建案銷量分佈圖</h3>
+                <div id="ranking-metric-toggle" class="inline-flex bg-dark-card p-1 rounded-lg">
+                    <button data-metric="saleAmountSum" class="avg-type-btn active px-4 py-1 text-sm font-semibold rounded-md transition-colors">交易總價</button>
+                    <button data-metric="houseAreaSum" class="avg-type-btn px-4 py-1 text-sm font-semibold rounded-md transition-colors">房屋面積</button>
+                    <button data-metric="transactionCount" class="avg-type-btn px-4 py-1 text-sm font-semibold rounded-md transition-colors">交易筆數</button>
+                </div>
+            </div>
            <div id="ranking-chart-container" class="mb-8"></div>
            <div class="overflow-x-auto">
                 <table id="ranking-table" class="min-w-full divide-y divide-gray-800"></table>
@@ -288,7 +281,7 @@
          
             <h4 class="font-bold text-gray-200">進階分析：建案調價熱力圖</h4>
                     <p class="text-sm text-gray-400 mt-1">
-                        啟用此功能可分析建案的調價軌跡。顏色越深，代表該戶成交價相比開盤時的漲幅越大。
+                        啟用此功能可分析建案的調價軌跡。顏色越深，代表該戶成交價相比開盤基準價的漲幅越大。
                 
                 </p>
                 </div>
