@@ -1,10 +1,6 @@
 // js/modules/dom.js 
 
 export const dom = {
-  rankingChartContainer: document.getElementById('ranking-chart-container'), // 新增
-  rankingPaginationControls: document.createElement('div'),
-  rankingMetricToggle: document.getElementById('ranking-metric-toggle'), // 新增
-  // ... 其他現有 DOM 元素
   countySelect: document.getElementById('county'),
   filterCard: document.getElementById('filter-card'),
   districtFilterWrapper: document.getElementById('district-filter-wrapper'),
@@ -26,8 +22,9 @@ export const dom = {
   rankingReportContent: document.getElementById('ranking-report-content'),
   metricCardsContainer: document.getElementById('metric-cards-container'),
   rankingTable: document.getElementById('ranking-table'),
-  rankingChartContainer: document.getElementById('ranking-chart-container'), // 新增
+  rankingChartContainer: document.getElementById('ranking-chart-container'),
   rankingPaginationControls: document.createElement('div'),
+  rankingMetricToggle: document.getElementById('ranking-metric-toggle'), // 新增
   priceBandReportContent: document.getElementById('price-band-report-content'),
   priceBandTable: document.getElementById('price-band-table'),
   priceBandChart: document.getElementById('price-band-chart'),
