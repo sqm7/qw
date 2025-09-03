@@ -3,18 +3,26 @@
 import { dom } from '../dom.js';
 import { state } from '../state.js';
 import { renderHeatmapDetailsTable } from './tables.js';
-import { THEME_COLORS } from '../config.js';
+import { THEME_COLORS } from '../config.js'; // 引入顏色設定
 
 // --- 全局圖表實例 ---
 let salesVelocityChartInstance = null;
 let priceBandChartInstance = null;
 let rankingChartInstance = null;
+// ▼▼▼ 【新增】用於儲存當前 Treemap 指標的狀態 ▼▼▼
+let currentTreemapMetric = 'saleAmountSum'; 
+// ▲▲▲ 【新增結束】 ▲▲▲
+
+
+// ▼▼▼ 【已修改】Treemap 功能升級 ▼▼▼
 
 /**
- * 渲染建案銷售總額佔比樹狀圖
- * @param {string} metric 要顯示的指標，可以是 'saleAmountSum', 'houseAreaSum', 'transactionCount'
+ * 渲染建案排名 Treemap 圖表
+ * @param {string} metric - 用於繪製圖表的指標 ('saleAmountSum', 'houseAreaSum', 'transactionCount')
  */
 export function renderRankingChart(metric = 'saleAmountSum') {
+    currentTreemapMetric = metric;
+
     if (rankingChartInstance) {
         rankingChartInstance.destroy();
         rankingChartInstance = null;
@@ -27,33 +35,32 @@ export function renderRankingChart(metric = 'saleAmountSum') {
 
     const { projectRanking } = state.analysisDataCache;
 
-    const metricConfig = {
-        'saleAmountSum': { name: '銷售總額', label: '萬', title: '建案銷售總額佔比 (Treemap)', total: 0 },
-        'houseAreaSum': { name: '房屋面積', label: '坪', title: '建案房屋面積佔比 (Treemap)', total: 0 },
-        'transactionCount': { name: '交易筆數', label: '筆', title: '建案交易筆數佔比 (Treemap)', total: 0 }
-    };
-    const currentConfig = metricConfig[metric] || metricConfig['saleAmountSum'];
-    
-    currentConfig.total = projectRanking.reduce((sum, p) => sum + (p[metric] || 0), 0);
+    // 根據指標從 projectRanking 數據中提取對應的 key 和名稱
+    const metricInfo = {
+        saleAmountSum: { key: 'saleAmountSum', name: '銷售總額', unit: '萬' },
+        houseAreaSum: { key: 'houseAreaSum', name: '房屋面積', unit: '坪' },
+        transactionCount: { key: 'transactionCount', name: '資料筆數', unit: '筆' }
+    }[metric];
 
+    // 計算總計值，用於後續計算百分比
+    const totalValue = projectRanking.reduce((sum, p) => sum + p[metricInfo.key], 0);
+
+    // 準備 Treemap 所需的資料格式
     const seriesData = projectRanking.map(p => ({
         x: p.projectName,
-        y: Math.round(p[metric] || 0)
+        y: Math.round(p[metricInfo.key])
     }));
 
-    const mainColor = THEME_COLORS['purple-accent'] || '#8b5cf6';
-    const lightColor = THEME_COLORS['cyan-accent'] || '#06b6d4';
-    
     const options = {
         series: [{
-            name: currentConfig.name,
+            name: metricInfo.name,
             data: seriesData
         }],
         chart: {
             type: 'treemap',
             height: 450,
             background: 'transparent',
-            toolbar: { 
+            toolbar: {
                 show: true,
                 tools: {
                     download: true,
@@ -65,26 +72,28 @@ export function renderRankingChart(metric = 'saleAmountSum') {
                     reset: false
                 }
             },
-            foreColor: '#e5e7eb'
+            foreColor: THEME_COLORS['text-light'] || '#e5e7eb'
         },
         title: {
-            text: currentConfig.title,
+            text: `建案${metricInfo.name}佔比 (Treemap)`,
             align: 'center',
             style: {
                 fontSize: '16px',
-                color: '#e5e7eb'
+                color: THEME_COLORS['text-light'] || '#e5e7eb'
             }
         },
         plotOptions: {
             treemap: {
                 distributed: true,
                 enableShades: true,
+                shadeIntensity: 0.7,
                 colorScale: {
+                    // 使用網站主題色進行顏色過渡
                     ranges: [
-                        { from: 0, to: 100000, color: '#a78bfa' },
-                        { from: 100001, to: 500000, color: '#8b5cf6' },
-                        { from: 500001, to: 1000000, color: '#7c3aed' },
-                        { from: 1000001, to: Infinity, color: '#6d28d9' }
+                        { from: 0, to: totalValue * 0.1, color: THEME_COLORS['cyan-accent'] },
+                        { from: totalValue * 0.1, to: totalValue * 0.3, color: '#4f46e5' }, // Indigo
+                        { from: totalValue * 0.3, to: totalValue * 0.6, color: '#7c3aed' }, // Purple
+                        { from: totalValue * 0.6, to: Infinity, color: THEME_COLORS['purple-accent'] }
                     ]
                 }
             }
@@ -93,8 +102,8 @@ export function renderRankingChart(metric = 'saleAmountSum') {
             theme: 'dark',
             y: {
                 formatter: function(value) {
-                    const percentage = currentConfig.total > 0 ? (value / currentConfig.total * 100).toFixed(2) : 0;
-                    return `${value.toLocaleString()} ${currentConfig.label} (${percentage}%)`;
+                    const percentage = totalValue > 0 ? (value / totalValue * 100).toFixed(1) : 0;
+                    return `${value.toLocaleString()} ${metricInfo.unit} (${percentage}%)`;
                 },
                 title: {
                     formatter: function(seriesName) {
@@ -108,9 +117,48 @@ export function renderRankingChart(metric = 'saleAmountSum') {
         }
     };
 
+    // 渲染圖表前，先處理上方的切換按鈕
+    renderTreemapControls();
+
     rankingChartInstance = new ApexCharts(dom.rankingChartContainer, options);
     rankingChartInstance.render();
 }
+
+/**
+ * 渲染 Treemap 指標切換按鈕
+ */
+function renderTreemapControls() {
+    let controlsContainer = document.getElementById('treemap-controls');
+    if (!controlsContainer) {
+        controlsContainer = document.createElement('div');
+        controlsContainer.id = 'treemap-controls';
+        controlsContainer.className = 'flex justify-center items-center gap-2 mb-4';
+        dom.rankingChartContainer.insertAdjacentElement('beforebegin', controlsContainer);
+        
+        // 使用事件委派，只綁定一次事件監聽器
+        controlsContainer.addEventListener('click', (e) => {
+            const button = e.target.closest('.treemap-metric-btn');
+            if (button && !button.classList.contains('active')) {
+                renderRankingChart(button.dataset.metric);
+            }
+        });
+    }
+
+    const metrics = [
+        { key: 'saleAmountSum', label: '交易總價' },
+        { key: 'houseAreaSum', label: '房屋面積' },
+        { key: 'transactionCount', label: '資料筆數' }
+    ];
+
+    controlsContainer.innerHTML = metrics.map(m => `
+        <button 
+            data-metric="${m.key}" 
+            class="treemap-metric-btn capsule-btn ${currentTreemapMetric === m.key ? 'active' : ''}">
+            ${m.label}
+        </button>
+    `).join('');
+}
+// ▲▲▲ 【修改結束】 ▲▲▲
 
 /**
  * 渲染總價帶分佈箱型圖
