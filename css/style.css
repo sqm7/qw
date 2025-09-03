@@ -243,3 +243,6 @@ thead th { background-color: var(--color-dark-card); position: sticky; top: 0; z
 }
 /* ▲▲▲ 修改結束 ▲▲▲ */
 /* re-trigger deployment */
+.apexcharts-svg {
+    overflow: visible !important;
+}
