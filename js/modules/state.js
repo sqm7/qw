@@ -1,43 +1,46 @@
 // js/modules/state.js
 
-import { dom } from './dom.js';
-import { countyCodeMap } from './config.js';
+/**
+ * @typedef {Object} GlobalState
+ * @property {string|null} currentCounty - The currently selected county.
+ * @property {string[]} selectedDistricts - A list of currently selected districts.
+ * @property {string[]} selectedProjects - A list of currently selected project names.
+ * @property {string|null} dateStart - The start date for the filter.
+ * @property {string|null} dateEnd - The end date for the filter.
+ * @property {string|null} buildingType - The selected building type.
+ * @property {any[]} data - The raw data fetched from the API.
+ * @property {any[]} filteredData - The data after applying filters.
+ * @property {boolean} isLoading - A flag to indicate if data is being loaded.
+ * @property {any} analysisDataCache - To cache the results of data analysis.
+ * @property {string} currentUnitPriceAvgType - The current average type for unit price ('arithmetic' or 'weighted').
+ * @property {string} currentVelocityView - The current view for sales velocity ('weekly', 'monthly', 'quarterly', 'yearly').
+ * @property {string} currentRankingMetric - The currently selected metric for the ranking treemap.
+ */
 
-// 使用一個物件來封裝所有狀態，方便管理和傳遞
+/**
+ * The global state of the application.
+ * @type {GlobalState}
+ */
 export const state = {
-    currentPage: 1,
-    pageSize: 30,
-    totalRecords: 0,
+    currentCounty: null,
     selectedDistricts: [],
     selectedProjects: [],
-    suggestionDebounceTimer: null,
-    analysisDataCache: null,
-    currentSort: { key: 'saleAmountSum', order: 'desc' },
-    rankingCurrentPage: 1,
-    rankingPageSize: 15,
-    currentAverageType: 'arithmetic',
+    dateStart: null,
+    dateEnd: null,
+    buildingType: null,
+    data: [],
+    filteredData: [],
+    isLoading: false,
+    analysisDataCache: null, 
+    currentUnitPriceAvgType: 'arithmetic',
     currentVelocityView: 'monthly',
-    selectedVelocityRooms: [],
-    selectedPriceBandRoomTypes: [],
-    selectedPriceGridProject: null,
-    isHeatmapActive: false,
-    currentLegendFilter: { type: null, value: null },
-    areaHeatmapChart: null,
-    // ▼▼▼ 【新增處】 ▼▼▼
-    lastHeatmapDetails: null, // 儲存上次點擊熱力圖的詳細數據
-    currentHeatmapDetailMetric: 'median', // 預設顯示中位數
-    // ▲▲▲ 【新增結束】 ▲▲▲
+    currentRankingMetric: 'saleAmountSum', //  新增這一行
 };
 
-// 根據當前狀態獲取篩選條件
-export function getFilters() {
-    const filters = {};
-    if (dom.countySelect.value) filters.countyCode = countyCodeMap[dom.countySelect.value] || '';
-    if (state.selectedDistricts.length > 0) filters.districts = state.selectedDistricts;
-    if (dom.typeSelect.value) filters.type = dom.typeSelect.value;
-    if (dom.dateStartInput.value) filters.dateStart = dom.dateStartInput.value;
-    if (dom.dateEndInput.value) filters.dateEnd = dom.dateEndInput.value;
-    if (dom.buildingTypeSelect.value) filters.buildingType = dom.buildingTypeSelect.value;
-    if (state.selectedProjects.length > 0) filters.projectNames = state.selectedProjects;
-    return filters;
+/**
+ * Updates the global state.
+ * @param {Partial<GlobalState>} newState - An object with the new state values.
+ */
+export function updateState(newState) {
+    Object.assign(state, newState);
 }
