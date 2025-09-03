@@ -51,6 +51,10 @@ export function renderRankingChart() {
         
         const chartData = sortedRanking.slice(0, 20).reverse();
 
+        // 動態計算左側邊距，給予足夠空間
+        const longestLabelLength = chartData.reduce((max, p) => Math.max(max, p.projectName.length), 0);
+        const dynamicPadding = Math.max(100, longestLabelLength * 12); // 根據最長建案名稱的長度估算 padding
+
         options = {
             series: [{
                 name: chartConfig.yLabel,
@@ -101,6 +105,8 @@ export function renderRankingChart() {
                         fontSize: '11px' 
                     },
                     align: 'right',
+                    // ▼▼▼ 【修改處】增加一個小的偏移量，讓文字不要完全貼著軸線 ▼▼▼
+                    offsetX: -5,
                 }
             },
             title: {
@@ -121,11 +127,11 @@ export function renderRankingChart() {
                 borderColor: '#374151',
                 xaxis: { lines: { show: true } },
                 yaxis: { lines: { show: false } },
-                // ▼▼▼ 【最終修正】大幅增加左側內邊距，確保文字有足夠空間顯示 ▼▼▼
+                // ▼▼▼ 【修改處】使用上面動態計算的 padding ▼▼▼
                 padding: {
-                    left: 120 
+                    left: dynamicPadding
                 }
-                // ▲▲▲ 【最終修正】 ▲▲▲
+                // ▲▲▲ 【修改結束】 ▲▲▲
             },
             noData: { text: '無資料可顯示' }
         };
