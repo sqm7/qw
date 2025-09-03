@@ -1,210 +1,179 @@
-// js/app.js (最終修正版，適配所有拆分後的模組)
+// js/app.js
 
-import { districtData } from './modules/config.js';
-import * as api from './modules/api.js';
+import { supabase } from './supabase-client.js';
 import { dom } from './modules/dom.js';
-import * as ui from './modules/ui.js';
-import { 
-    mainFetchData, 
-    mainAnalyzeData, 
-    mainShowSubTableDetails, 
-    updateDistrictOptions, 
-    toggleAnalyzeButtonState, 
+import { initializeDatepickers, populateCountyOptions, checkLoginStatus, handleLogout } from './modules/ui.js';
+import {
+    handleCountyChange,
+    handleDistrictSuggestionClick,
+    handleProjectNameInput,
+    handleProjectSuggestionClick,
+    handleClearDistricts,
+    handleClearProjects,
+    handleAnalyze,
+    handleSearch,
+    handleTabClick,
+    handlePageChange,
+    handleSetToday,
     handleDateRangeChange,
-    onDistrictContainerClick,
-    onDistrictSuggestionClick,
-    clearSelectedDistricts,
-    onProjectInputFocus,
-    onProjectInput,
-    onSuggestionClick,
-    removeProject,
-    clearSelectedProjects,
-    handleGlobalClick,
-    switchAverageType,
-    handlePriceBandRoomFilterClick,
-    handleVelocityRoomFilterClick,
+    handleAvgTypeToggle,
     handleVelocitySubTabClick,
-    handleHeatmapMetricToggle, // 引入新的事件處理函式
+    handleRoomFilterClick,
+    handleHeatmapIntervalChange,
+    handleHeatmapRangeChange,
+    handleHeatmapDetailsMetricToggle,
     handlePriceGridProjectFilterClick,
-    analyzeHeatmap,
+    handleAnalyzeHeatmap,
     handleBackToGrid,
-    handleLegendClick,
-    handleShareClick,
-    copyShareUrl
+    handleSharePriceGrid,
+    handleRankingMetricChange // ▼▼▼ 【已在此處新增 import】 ▼▼▼
 } from './modules/eventHandlers.js';
-import { state } from './modules/state.js';
+import { updateState } from './modules/state.js';
 
-// 引入拆分後的渲染模組
-import * as reportRenderer from './modules/renderers/reports.js';
-import * as chartRenderer from './modules/renderers/charts.js';
-
-{/* */}
-async function setupUserStatus() {
-    try {
-        const user = await api.getUser();
-        const container = document.getElementById('user-status-container');
-        if (user && container) {
-            container.innerHTML = `
-                <p class="text-gray-300">歡迎, ${user.email}</p>
-                <button id="logout-btn" class="mt-1 text-red-400 hover:text-red-300 transition-colors">登出</button>
-            `;
-            document.getElementById('logout-btn').addEventListener('click', async () => {
-                try {
-                    await api.signOut();
-                    window.location.href = 'login.html';
-                } catch (e) {
-                    alert('登出時發生錯誤。');
-                }
-            });
-        }
-    } catch (error) {
-        console.error('無法設定使用者狀態:', error);
-    }
-}
-{/* */}
-
-function initialize() {
-    api.checkAuth().catch(err => {
-        console.error("認證檢查失敗:", err);
-    });
-
-    {/* */}
-    setupUserStatus(); // 呼叫新的函式來設定右上角的 UI
-    {/* */}
-
-    try {
-        const countyNames = Object.keys(districtData);
-        countyNames.forEach(name => {
-            dom.countySelect.add(new Option(name, name));
-        });
-    } catch (error) {
-        console.error("填入縣市資料時發生錯誤:", error);
-        ui.showMessage("系統初始化失敗：載入縣市資料時出錯。", true);
-        return;
-    }
-    
-    dom.rankingPaginationControls.id = 'ranking-pagination-controls';
-    dom.rankingPaginationControls.className = 'flex justify-between items-center mt-4 text-sm text-gray-400';
-    dom.rankingReportContent.querySelector('.overflow-x-auto').insertAdjacentElement('afterend', dom.rankingPaginationControls);
-
-    // --- 主要按鈕與篩選器事件 ---
-    dom.searchBtn.addEventListener('click', () => { state.currentPage = 1; mainFetchData(); });
-    dom.analyzeBtn.addEventListener('click', mainAnalyzeData);
-    dom.countySelect.addEventListener('change', updateDistrictOptions);
-    dom.typeSelect.addEventListener('change', toggleAnalyzeButtonState);
-    
-    // --- 日期相關事件 ---
+/**
+ * 初始化應用程式事件監聽器
+ */
+function initializeEventListeners() {
+    // 篩選器相關
+    dom.countySelect.addEventListener('change', handleCountyChange);
+    dom.districtSuggestions.addEventListener('click', handleDistrictSuggestionClick);
+    dom.projectNameInput.addEventListener('input', handleProjectNameInput);
+    dom.projectNameSuggestions.addEventListener('click', handleProjectSuggestionClick);
+    dom.clearDistrictsBtn.addEventListener('click', handleClearDistricts);
+    dom.clearProjectsBtn.addEventListener('click', handleClearProjects);
     dom.dateRangeSelect.addEventListener('change', handleDateRangeChange);
-    dom.dateStartInput.addEventListener('input', () => { if (document.activeElement === dom.dateStartInput) dom.dateRangeSelect.value = 'custom'; });
-    dom.dateEndInput.addEventListener('input', () => { if (document.activeElement === dom.dateEndInput) dom.dateRangeSelect.value = 'custom'; });
-    dom.setTodayBtn.addEventListener('click', () => {
-        dom.dateEndInput.value = ui.formatDate(new Date());
-        dom.dateRangeSelect.value = 'custom';
-    });
+    dom.setTodayBtn.addEventListener('click', handleSetToday);
 
-    // --- 行政區與建案名稱篩選器 (使用事件委派) ---
-    dom.districtContainer.addEventListener('click', onDistrictContainerClick);
-    dom.districtSuggestions.addEventListener('click', onDistrictSuggestionClick);
-    dom.clearDistrictsBtn.addEventListener('click', clearSelectedDistricts);
+    // 主要操作按鈕
+    dom.analyzeBtn.addEventListener('click', handleAnalyze);
+    dom.searchBtn.addEventListener('click', handleSearch);
 
-    dom.projectNameInput.addEventListener('focus', onProjectInputFocus);
-    dom.projectNameInput.addEventListener('input', onProjectInput);
-    dom.projectNameSuggestions.addEventListener('click', onSuggestionClick);
-    dom.projectNameContainer.addEventListener('click', e => { 
-        if (e.target.classList.contains('multi-tag-remove')) removeProject(e.target.dataset.name); 
-    });
-    dom.clearProjectsBtn.addEventListener('click', clearSelectedProjects);
-    
-    // --- 彈出視窗與全域點擊事件 ---
-    dom.modalCloseBtn.addEventListener('click', () => dom.modal.classList.add('hidden'));
-    dom.resultsTable.addEventListener('click', e => { 
-        const detailsBtn = e.target.closest('.details-btn');
-        if (detailsBtn) mainShowSubTableDetails(detailsBtn); 
-    });
-    document.addEventListener('click', handleGlobalClick);
+    // Tab 導航
+    dom.tabsContainer.addEventListener('click', handleTabClick);
 
-    // --- 報告頁籤與互動元件事件 ---
-    dom.tabsContainer.addEventListener('click', (e) => {
-        if (e.target.matches('.tab-button')) {
-            const tabId = e.target.dataset.tab;
-            ui.switchTab(tabId);
-            if (tabId === 'velocity-report' && state.analysisDataCache) {
-                chartRenderer.renderSalesVelocityChart();
-                chartRenderer.renderAreaHeatmap();
-            }
-        }
-    });
-    dom.rankingTable.addEventListener('click', (e) => {
-        const header = e.target.closest('.sortable-th');
-        if (!header) return;
-        const sortKey = header.dataset.sortKey;
-        if (state.currentSort.key === sortKey) {
-            state.currentSort.order = state.currentSort.order === 'desc' ? 'asc' : 'desc';
-        } else {
-            state.currentSort.key = sortKey;
-            state.currentSort.order = 'desc';
-        }
-        state.rankingCurrentPage = 1;
-        reportRenderer.renderRankingReport();
-    });
-    dom.avgTypeToggle.addEventListener('click', (e) => { 
-        if (e.target.matches('.avg-type-btn')) switchAverageType(e.target.dataset.type); 
-    });
+    // 資料列表分頁
+    dom.paginationControls.addEventListener('click', handlePageChange);
     
-    // --- 去化分析與垂直水平分析相關事件 ---
-    dom.priceBandRoomFilterContainer.addEventListener('click', handlePriceBandRoomFilterClick);
-    dom.velocityRoomFilterContainer.addEventListener('click', handleVelocityRoomFilterClick);
-    dom.velocitySubTabsContainer.addEventListener('click', handleVelocitySubTabClick);
-    dom.priceGridProjectFilterContainer.addEventListener('click', handlePriceGridProjectFilterClick);
-    dom.analyzeHeatmapBtn.addEventListener('click', analyzeHeatmap);
-    dom.backToGridBtn.addEventListener('click', handleBackToGrid);
-    dom.heatmapLegendContainer.addEventListener('click', handleLegendClick);
+    // 登出按鈕 (如果存在)
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
+    }
     
-    // ▼▼▼ 【新增處】綁定新的事件監聽器 ▼▼▼
-    dom.heatmapMetricToggle.addEventListener('click', handleHeatmapMetricToggle);
+    // --- 報告內互動事件 ---
+    
+    // ▼▼▼ 【已在此處新增監聽器】 ▼▼▼
+    // 核心指標與排名
+    dom.rankingMetricSelector.addEventListener('click', handleRankingMetricChange);
     // ▲▲▲ 【新增結束】 ▲▲▲
 
-    // 熱力圖面積級距控制
-    dom.heatmapIntervalInput.addEventListener('change', chartRenderer.renderAreaHeatmap);
-    dom.heatmapMinAreaInput.addEventListener('change', chartRenderer.renderAreaHeatmap);
-    dom.heatmapMaxAreaInput.addEventListener('change', chartRenderer.renderAreaHeatmap);
-    dom.heatmapIntervalIncrementBtn.addEventListener('click', () => {
-        const input = dom.heatmapIntervalInput;
-        const step = parseFloat(input.step) || 1;
-        const max = parseFloat(input.max) || 10;
-        let newValue = (parseFloat(input.value) || 0) + step;
-        if (newValue > max) newValue = max;
-        input.value = newValue;
-        chartRenderer.renderAreaHeatmap();
-    });
-    dom.heatmapIntervalDecrementBtn.addEventListener('click', () => {
-        const input = dom.heatmapIntervalInput;
-        const step = parseFloat(input.step) || 1;
-        const min = parseFloat(input.min) || 1;
-        let newValue = (parseFloat(input.value) || 0) - step;
-        if (newValue < min) newValue = min;
-        input.value = newValue;
-        chartRenderer.renderAreaHeatmap();
-    });
+    // 總價帶分析
+    dom.priceBandRoomFilterContainer.addEventListener('click', (e) => handleRoomFilterClick(e, 'price-band'));
 
-    // --- 分享功能 ---
-    dom.sharePriceGridBtn.addEventListener('click', () => handleShareClick('price_grid'));
-    dom.shareModalCloseBtn.addEventListener('click', () => dom.shareModal.classList.add('hidden'));
-    dom.copyShareUrlBtn.addEventListener('click', copyShareUrl);
+    // 單價分析
+    dom.avgTypeToggle.addEventListener('click', handleAvgTypeToggle);
 
-    // --- 處理分頁變更的自訂事件 ---
-    document.addEventListener('pageChange', (e) => {
-        if (e.detail.type === 'main') {
-            mainFetchData();
-        } else if (e.detail.type === 'ranking') {
-            reportRenderer.renderRankingReport();
+    // 去化分析
+    dom.velocitySubTabsContainer.addEventListener('click', handleVelocitySubTabClick);
+    dom.velocityRoomFilterContainer.addEventListener('click', (e) => handleRoomFilterClick(e, 'velocity'));
+    dom.heatmapIntervalIncrement.addEventListener('click', () => handleHeatmapIntervalChange(1));
+    dom.heatmapIntervalDecrement.addEventListener('click', () => handleHeatmapIntervalChange(-1));
+    dom.heatmapMinAreaInput.addEventListener('change', handleHeatmapRangeChange);
+    dom.heatmapMaxAreaInput.addEventListener('change', handleHeatmapRangeChange);
+    dom.heatmapDetailsMetricToggle.addEventListener('click', handleHeatmapDetailsMetricToggle);
+
+    // 垂直水平分析
+    dom.priceGridProjectFilterContainer.addEventListener('click', handlePriceGridProjectFilterClick);
+    dom.analyzeHeatmapBtn.addEventListener('click', handleAnalyzeHeatmap);
+    dom.backToGridBtn.addEventListener('click', handleBackToGrid);
+    dom.sharePriceGridBtn.addEventListener('click', handleSharePriceGrid);
+
+    // 點擊區域外關閉下拉選單
+    document.addEventListener('click', (e) => {
+        if (!dom.districtFilterWrapper.contains(e.target)) {
+            dom.districtSuggestions.classList.add('hidden');
+        }
+        if (!dom.projectFilterWrapper.contains(e.target)) {
+            dom.projectNameSuggestions.classList.add('hidden');
         }
     });
-
-    // --- 初始化應用狀態 ---
-    handleDateRangeChange();
-    toggleAnalyzeButtonState();
-    updateDistrictOptions();
+    
+    // 讓 district-container 也能觸發顯示建議
+    dom.districtContainer.addEventListener('click', () => {
+        if (!dom.countySelect.value) return;
+        dom.districtSuggestions.classList.remove('hidden');
+    });
 }
 
-initialize();
+
+/**
+ * 檢查 URL 中是否有共享報告的參數
+ */
+async function checkForSharedReport() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const reportId = urlParams.get('report');
+
+    if (reportId) {
+        // 移除 URL 中的 report 參數，避免重新整理時再次觸發
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+
+        try {
+            const { data, error } = await supabase.functions.invoke('public-report', {
+                body: { reportId: reportId },
+            });
+
+            if (error) throw error;
+            
+            if (data && data.filters && data.analysisData) {
+                // 更新狀態並渲染報告
+                updateState({
+                    currentCounty: data.filters.county,
+                    selectedDistricts: data.filters.districts,
+                    selectedProjects: data.filters.projects,
+                    dateStart: data.filters.dateStart,
+                    dateEnd: data.filters.dateEnd,
+                    buildingType: data.filters.buildingType,
+                    analysisDataCache: data.analysisData
+                });
+                
+                // 渲染篩選器 UI
+                populateCountyOptions([data.filters.county]);
+                dom.countySelect.value = data.filters.county;
+                // 這裡可以根據需要進一步渲染已選的行政區和建案
+                
+                // 渲染報告
+                renderAllReports(data.analysisData);
+            } else {
+                alert('無法載入分享的報告內容。');
+            }
+        } catch (err) {
+            console.error('載入分享報告時出錯:', err);
+            alert('載入分享報告時發生錯誤，請稍後再試。');
+        }
+    }
+}
+
+
+/**
+ * 應用程式初始化函數
+ */
+async function init() {
+    await checkLoginStatus();
+    initializeDatepickers();
+    initializeEventListeners();
+    await checkForSharedReport();
+    
+    // 只有在沒有載入分享報告時才去抓取縣市列表
+    if (!new URLSearchParams(window.location.search).has('report')) {
+        const { data: counties, error } = await supabase.rpc('get_unique_counties');
+        if (error) {
+            console.error('無法獲取縣市列表:', error);
+            return;
+        }
+        populateCountyOptions(counties.map(c => c.county));
+    }
+}
+
+// 當 DOM 完全載入後執行初始化
+document.addEventListener('DOMContentLoaded', init);
