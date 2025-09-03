@@ -1,6 +1,10 @@
 // js/modules/dom.js 
 
 export const dom = {
+  rankingChartContainer: document.getElementById('ranking-chart-container'), // 新增
+  rankingPaginationControls: document.createElement('div'),
+  rankingMetricToggle: document.getElementById('ranking-metric-toggle'), // 新增
+  // ... 其他現有 DOM 元素
   countySelect: document.getElementById('county'),
   filterCard: document.getElementById('filter-card'),
   districtFilterWrapper: document.getElementById('district-filter-wrapper'),
