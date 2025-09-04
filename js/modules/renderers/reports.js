@@ -8,7 +8,6 @@ import { renderVelocityTable } from './tables.js';
 import { renderAreaHeatmap, renderSalesVelocityChart, renderPriceBandChart, renderRankingChart } from './charts.js';
 import { displayCurrentPriceGrid } from './heatmap.js';
 
-// --- 新增的輔助函式，用於渲染三欄式卡片 ---
 function renderStatsBlock(stats, averageType, tableContainerId, extraInfoContainerId, noDataMessage) {
     const tableContainer = document.getElementById(tableContainerId);
     const extraInfoContainer = document.getElementById(extraInfoContainerId);
@@ -46,7 +45,6 @@ function renderStatsBlock(stats, averageType, tableContainerId, extraInfoContain
         extraInfoContainer.innerHTML = '';
     }
 }
-
 
 export function renderRankingReport() {
     if (!state.analysisDataCache || !state.analysisDataCache.coreMetrics) return;
@@ -154,7 +152,6 @@ export function renderPriceBandReport() {
     renderPriceBandChart();
 }
 
-// ▼▼▼ 【 唯一修改的函式 】 ▼▼▼
 export function renderUnitPriceReport() {
     if (!state.analysisDataCache || !state.analysisDataCache.unitPriceAnalysis) {
         renderStatsBlock(null, null, 'residential-stats-table-container', 'residential-stats-extra-info', '無住宅交易數據');
@@ -166,15 +163,12 @@ export function renderUnitPriceReport() {
         return;
     }
 
-    // 從後端獲取所有需要的資料
     const { residentialStats, officeStats, storeStats, typeComparison } = state.analysisDataCache.unitPriceAnalysis;
     
-    // 渲染新的三欄式統計卡片
     renderStatsBlock(residentialStats, state.currentAverageType, 'residential-stats-table-container', 'residential-stats-extra-info', '無住宅交易數據');
     renderStatsBlock(officeStats, state.currentAverageType, 'office-stats-table-container', 'office-stats-extra-info', '無事務所/辦公室交易數據');
     renderStatsBlock(storeStats, state.currentAverageType, 'store-stats-table-container', 'store-stats-extra-info', '無店鋪交易數據');
 
-    // 渲染加回來的「單價倍數比較表」
     const comparisonContainer = dom.typeComparisonTableContainer;
     if (comparisonContainer) {
         if (typeComparison && typeComparison.length > 0) {
@@ -192,7 +186,6 @@ export function renderUnitPriceReport() {
         }
     }
 }
-// ▲▲▲ 【 修改結束 】 ▲▲▲
 
 export function renderParkingAnalysisReport() {
     if (!state.analysisDataCache || !state.analysisDataCache.parkingAnalysis) return;
