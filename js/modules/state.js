@@ -34,9 +34,7 @@ export const state = {
     isHeatmapActive: false,
     currentLegendFilter: { type: null, value: null },
 
-    // ▼▼▼ 【新增處】 ▼▼▼
-    excludeCommercial: false, // 是否排除店面/事務所
-    // ▲▲▲ 【新增結束】 ▲▲▲
+    excludeCommercial: false, // 【新增此行】
 };
 
 export function getFilters() {
