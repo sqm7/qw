@@ -1,289 +1,489 @@
 // js/modules/renderers/reports.js
+import { formatNumber, safeDivide, formatDate, createIcon, formatPercentage } from '../utils.js';
+import { createStatCard, createComparisonTable, createParkingTable, createFloorPriceTable, createHorizontalComparisonTable } from './uiComponents.js';
 
-import { dom } from '../dom.js';
-import { state } from '../state.js';
-import * as ui from '../ui.js';
-import { renderRankingPagination } from './uiComponents.js';
-import { renderVelocityTable } from './tables.js';
-import { renderAreaHeatmap, renderSalesVelocityChart, renderPriceBandChart, renderRankingChart } from './charts.js';
-import { displayCurrentPriceGrid } from './heatmap.js';
+/**
+ * 渲染主報表的內容
+ * @param {object} analysisResults - 後端回傳的完整分析結果
+ * @param {object} parkData - 停車位相關的子資料
+ * @param {Map<string, string>} finalUnitIds - 最終的戶號對應 Map
+ */
+export function renderReport(analysisResults, parkData, finalUnitIds) {
+    const reportContainer = document.getElementById('report-container');
+    if (!reportContainer) return;
+    reportContainer.innerHTML = ''; // 清空舊內容
 
-function renderStatsBlock(stats, averageType, tableContainerId, extraInfoContainerId, noDataMessage) {
-    const tableContainer = document.getElementById(tableContainerId);
-    const extraInfoContainer = document.getElementById(extraInfoContainerId);
+    // 獲取區塊的 DOM 元素
+    const unitPriceSection = document.getElementById('unit-price-analysis-section');
+    const parkingSection = document.getElementById('parking-analysis-section');
+    const salesVelocitySection = document.getElementById('sales-velocity-section');
+    const priceBandSection = document.getElementById('price-band-analysis-section');
+    const areaDistributionSection = document.getElementById('area-distribution-section');
 
-    if (!tableContainer || !extraInfoContainer) {
-        console.error(`DOM elements not found for rendering stats: ${tableContainerId}`);
-        return;
+    // 清空現有內容
+    unitPriceSection.innerHTML = '<h2>房屋單價分析</h2>';
+    parkingSection.innerHTML = '<h2>停車位分析</h2>';
+    salesVelocitySection.innerHTML = '<h2>銷售速度分析</h2>';
+    priceBandSection.innerHTML = '<h2>各房型總價段分佈</h2>';
+    areaDistributionSection.innerHTML = '<h2>各房型面積分佈</h2>';
+
+    // 依次渲染各個分析區塊
+    if (analysisResults.unitPriceAnalysis) {
+        renderUnitPriceAnalysis(unitPriceSection, analysisResults.unitPriceAnalysis);
     }
-
-    if (stats && stats.count > 0 && stats.avgPrice) {
-        const avgPriceToShow = stats.avgPrice[averageType];
-        const minPriceTooltip = stats.minPriceProject ? `建案: ${stats.minPriceProject}\n戶型: ${stats.minPriceUnit || '-'}\n樓層: ${stats.minPriceFloor || '-'}` : '';
-        const maxPriceTooltip = stats.maxPriceProject ? `建案: ${stats.maxPriceProject}\n戶型: ${stats.maxPriceUnit || '-'}\n樓層: ${stats.maxPriceFloor || '-'}` : '';
-        
-        tableContainer.innerHTML = `
-            <table class="min-w-full divide-y divide-gray-800">
-                <thead>
-                    <tr><th class="w-1/2">統計項目</th><th class="w-1/2">房屋單價 (萬/坪)</th></tr>
-                </thead>
-                <tbody>
-                    <tr class="hover:bg-dark-card"><td class="font-medium text-gray-300">平均單價</td><td>${ui.formatNumber(avgPriceToShow)}</td></tr>
-                    <tr class="hover:bg-dark-card"><td class="font-medium text-gray-300">最低單價</td><td><span class="has-tooltip" data-tooltip="${minPriceTooltip}">${ui.formatNumber(stats.minPrice)}</span></td></tr>
-                    <tr class="hover:bg-dark-card"><td class="font-medium text-gray-300">1/4分位數單價</td><td>${ui.formatNumber(stats.q1Price)}</td></tr>
-                    <tr class="hover:bg-dark-card"><td class="font-medium text-gray-300">中位數單價</td><td>${ui.formatNumber(stats.medianPrice)}</td></tr>
-                    <tr class="hover:bg-dark-card"><td class="font-medium text-gray-300">3/4分位數單價</td><td>${ui.formatNumber(stats.q3Price)}</td></tr>
-                    <tr class="hover:bg-dark-card"><td class="font-medium text-gray-300">最高單價</td><td><span class="has-tooltip" data-tooltip="${maxPriceTooltip}">${ui.formatNumber(stats.maxPrice)}</span></td></tr>
-                </tbody>
-            </table>`;
-
-        extraInfoContainer.innerHTML = `
-            <p><span class="font-semibold text-cyan-400">最低價建案：</span>${stats.minPriceProject || 'N/A'}</p>
-            <p><span class="font-semibold text-purple-400">最高價建案：</span>${stats.maxPriceProject || 'N/A'}</p>`;
-    } else {
-        tableContainer.innerHTML = `<p class="text-gray-500 text-center p-4">${noDataMessage}</p>`;
-        extraInfoContainer.innerHTML = '';
+    if (analysisResults.parkingAnalysis) {
+        renderParkingAnalysis(parkingSection, analysisResults.parkingAnalysis);
+    }
+    if (analysisResults.salesVelocity) {
+        renderSalesVelocity(salesVelocitySection, analysisResults.salesVelocity);
+    }
+    if (analysisResults.priceBandAnalysis) {
+        renderPriceBandAnalysis(priceBandSection, analysisResults.priceBandAnalysis);
+    }
+    if (analysisResults.areaDistribution) {
+        renderAreaDistribution(areaDistributionSection, analysisResults.areaDistribution);
     }
 }
 
-export function renderRankingReport() {
-    if (!state.analysisDataCache || !state.analysisDataCache.coreMetrics) return;
-    
-    const { coreMetrics, projectRanking } = state.analysisDataCache;
-    
-    dom.metricCardsContainer.innerHTML = `<div class="metric-card"><div class="metric-card-title">市場去化總銷售金額</div><div><span class="metric-card-value">${ui.formatNumber(coreMetrics.totalSaleAmount, 0)}</span><span class="metric-card-unit">萬</span></div></div><div class="metric-card"><div class="metric-card-title">總銷去化房屋坪數</div><div><span class="metric-card-value">${ui.formatNumber(coreMetrics.totalHouseArea, 2)}</span><span class="metric-card-unit">坪</span></div></div><div class="metric-card"><div class="metric-card-title">總平均單價</div><div><span class="metric-card-value">${ui.formatNumber(coreMetrics.overallAveragePrice, 2)}</span><span class="metric-card-unit">萬/坪</span></div></div><div class="metric-card"><div class="metric-card-title">總交易筆數</div><div><span class="metric-card-value">${coreMetrics.transactionCount.toLocaleString()}</span><span class="metric-card-unit">筆</span></div></div>`;
-    
-    renderRankingChart();
 
-    projectRanking.sort((a, b) => {
-        const valA = a[state.currentSort.key];
-        const valB = b[state.currentSort.key];
-        return state.currentSort.order === 'desc' ? valB - valA : valA - valB;
-    });
+/**
+ * 渲染單價分析區塊
+ * @param {HTMLElement} container - 插入內容的容器元素
+ * @param {object} unitPriceAnalysis - 單價分析數據
+ */
+export function renderUnitPriceAnalysis(container, unitPriceAnalysis) {
+    const { residentialStats, officeStats, storeStats, typeComparison } = unitPriceAnalysis;
 
-    const pagedData = projectRanking.slice((state.rankingCurrentPage - 1) * state.rankingPageSize, state.rankingCurrentPage * state.rankingPageSize);
-    
-    const tableHeaders = [{ key: 'rank', label: '排名', sortable: false },{ key: 'projectName', label: '建案名稱', sortable: false },{ key: 'saleAmountSum', label: '交易總價(萬)', sortable: true },{ key: 'houseAreaSum', label: '房屋面積(坪)', sortable: true },{ key: 'transactionCount', label: '資料筆數', sortable: true },{ key: 'marketShare', label: '市場佔比(%)', sortable: true },{ key: 'averagePrice', label: '平均單價(萬)', sortable: true },{ key: 'minPrice', label: '最低單價(萬)', sortable: true },{ key: 'maxPrice', label: '最高單價(萬)', sortable: true },{ key: 'medianPrice', label: '單價中位數(萬)', sortable: true },{ key: 'avgParkingPrice', label: '車位平均單價', sortable: true }];
-    let headerHtml = '<thead><tr>';
-    tableHeaders.forEach(h => { if (h.sortable) { const sortClass = state.currentSort.key === h.key ? state.currentSort.order : ''; headerHtml += `<th class="sortable-th ${sortClass}" data-sort-key="${h.key}">${h.label}<span class="sort-icon">▼</span></th>`; } else { headerHtml += `<th>${h.label}</th>`; } });
-    headerHtml += '</tr></thead>';
-    
-    let bodyHtml = '<tbody>';
-    pagedData.forEach((proj, index) => { 
-        const rankNumber = (state.rankingCurrentPage - 1) * state.rankingPageSize + index + 1;
-        bodyHtml += `<tr class="hover:bg-dark-card transition-colors"><td>${rankNumber}</td><td>${proj.projectName}</td><td>${ui.formatNumber(proj.saleAmountSum, 0)}</td><td>${ui.formatNumber(proj.houseAreaSum)}</td><td>${proj.transactionCount.toLocaleString()}</td><td>${ui.formatNumber(proj.marketShare)}%</td><td>${ui.formatNumber(proj.averagePrice)}</td><td>${ui.formatNumber(proj.minPrice)}</td><td>${ui.formatNumber(proj.maxPrice)}</td><td>${ui.formatNumber(proj.medianPrice)}</td><td>${ui.formatNumber(proj.avgParkingPrice, 0)}</td></tr>`; 
-    });
-    bodyHtml += '</tbody>';
-    
-    let footerHtml = `<tfoot class="bg-dark-card font-bold"><tr class="border-t-2 border-gray-600"><td colspan="2">總計</td><td>${ui.formatNumber(coreMetrics.totalSaleAmount, 0)}</td><td>${ui.formatNumber(coreMetrics.totalHouseArea)}</td><td>${coreMetrics.transactionCount.toLocaleString()}</td><td colspan="6"></td></tr></tfoot>`;
-    
-    dom.rankingTable.innerHTML = headerHtml + bodyHtml + footerHtml;
+    // --- 創建一個 flex 容器來放置三個統計卡片 ---
+    const statsContainer = document.createElement('div');
+    statsContainer.className = 'stats-cards-container'; // 新增的 class，用於 CSS flex 排版
 
-    renderRankingPagination(projectRanking.length);
+    // 1. 住宅單價統計卡片
+    if (residentialStats && residentialStats.count > 0) {
+        const residentialCard = createStatCard(
+            '住宅單價 (住宅大樓/華廈)',
+            residentialStats.avgPrice.weighted,
+            '萬/坪',
+            residentialStats.count,
+            {
+                '算術平均': residentialStats.avgPrice.arithmetic.toFixed(2),
+                '最低價': `${residentialStats.minPrice.toFixed(2)} (${residentialStats.minPriceProject} - ${residentialStats.minPriceUnit || 'N/A'})`,
+                '最高價': `${residentialStats.maxPrice.toFixed(2)} (${residentialStats.maxPriceProject} - ${residentialStats.maxPriceUnit || 'N/A'})`,
+                'Q1': residentialStats.q1Price.toFixed(2),
+                '中位數': residentialStats.medianPrice.toFixed(2),
+                'Q3': residentialStats.q3Price.toFixed(2),
+            },
+            'fa-building'
+        );
+        statsContainer.appendChild(residentialCard); // 將卡片加入到 flex 容器中
+    }
+
+    // 2. 事務所/辦公室單價統計卡片
+    if (officeStats && officeStats.count > 0) {
+        const officeCard = createStatCard(
+            '事務所/辦公室單價',
+            officeStats.avgPrice.weighted,
+            '萬/坪',
+            officeStats.count,
+            {
+                '算術平均': officeStats.avgPrice.arithmetic.toFixed(2),
+                '最低價': `${officeStats.minPrice.toFixed(2)} (${officeStats.minPriceProject} - ${officeStats.minPriceUnit || 'N/A'})`,
+                '最高價': `${officeStats.maxPrice.toFixed(2)} (${officeStats.maxPriceProject} - ${officeStats.maxPriceUnit || 'N/A'})`,
+                'Q1': officeStats.q1Price.toFixed(2),
+                '中位數': officeStats.medianPrice.toFixed(2),
+                'Q3': officeStats.q3Price.toFixed(2),
+            },
+            'fa-briefcase'
+        );
+        statsContainer.appendChild(officeCard); // 將卡片加入到 flex 容器中
+    }
+
+    // 3. 店鋪單價統計卡片
+    if (storeStats && storeStats.count > 0) {
+        const storeCard = createStatCard(
+            '店舖單價',
+            storeStats.avgPrice.weighted,
+            '萬/坪',
+            storeStats.count,
+            {
+                '算術平均': storeStats.avgPrice.arithmetic.toFixed(2),
+                '最低價': `${storeStats.minPrice.toFixed(2)} (${storeStats.minPriceProject} - ${storeStats.minPriceUnit || 'N/A'})`,
+                '最高價': `${storeStats.maxPrice.toFixed(2)} (${storeStats.maxPriceProject} - ${storeStats.maxPriceUnit || 'N/A'})`,
+                'Q1': storeStats.q1Price.toFixed(2),
+                '中位數': storeStats.medianPrice.toFixed(2),
+                'Q3': storeStats.q3Price.toFixed(2),
+            },
+            'fa-store'
+        );
+        statsContainer.appendChild(storeCard); // 將卡片加入到 flex 容器中
+    }
+
+    // --- 將整個 flex 容器加入到主容器中 ---
+    if (statsContainer.hasChildNodes()) {
+        container.appendChild(statsContainer);
+    }
+
+    // 4. 建案類型單價倍數比較表格
+    if (typeComparison && typeComparison.length > 0) {
+        const comparisonTable = createComparisonTable(typeComparison);
+        container.appendChild(comparisonTable);
+    }
 }
 
-export function renderPriceBandReport() {
-    if (!state.analysisDataCache || !state.analysisDataCache.priceBandAnalysis) return;
-    
-    const { priceBandAnalysis } = state.analysisDataCache;
 
-    const allRoomTypes = [...new Set(priceBandAnalysis.map(item => item.roomType))];
-    
-    const sortOrder = ['套房', '1房', '2房', '3房', '4房', '5房以上', '毛胚', '店舖', '辦公/事務所', '廠辦/工廠', '其他'];
+/**
+ * 渲染停車位分析區塊
+ * @param {HTMLElement} container - 插入內容的容器元素
+ * @param {object} parkingAnalysis - 停車位分析數據
+ */
+export function renderParkingAnalysis(container, parkingAnalysis) {
+    const { parkingRatio, avgPriceByType, rampPlanePriceByFloor } = parkingAnalysis;
 
-    allRoomTypes.sort((a, b) => {
-        const mapToNewCategory = (type) => {
-            if (type === '工廠/倉庫') return '廠辦/工廠';
-            if (type === '辦公') return '辦公/事務所';
-            return type;
+    const content = document.createDocumentFragment();
+
+    // 1. 房車配比
+    const ratioDiv = document.createElement('div');
+    ratioDiv.className = 'parking-ratio-container';
+    ratioDiv.innerHTML = `
+        <p>總交易戶數: ${parkingRatio.withParking.count + parkingRatio.withoutParking.count}戶</p>
+        <div class="ratio-bar">
+            <div class="bar-with-parking" style="width: ${parkingRatio.withParking.percentage.toFixed(2)}%;" data-tooltip="配車位: ${parkingRatio.withParking.count}戶 (${parkingRatio.withParking.percentage.toFixed(1)}%)"></div>
+            <div class="bar-without-parking" style="width: ${parkingRatio.withoutParking.percentage.toFixed(2)}%;" data-tooltip="無車位: ${parkingRatio.withoutParking.count}戶 (${parkingRatio.withoutParking.percentage.toFixed(1)}%)"></div>
+        </div>
+    `;
+    content.appendChild(ratioDiv);
+
+    // 2. 車位類型均價表 + 坡道平面分層價差表
+    const tablesContainer = document.createElement('div');
+    tablesContainer.className = 'parking-tables-container';
+
+    if (avgPriceByType && avgPriceByType.length > 0) {
+        const avgPriceTable = createParkingTable(avgPriceByType);
+        tablesContainer.appendChild(avgPriceTable);
+    }
+
+    if (rampPlanePriceByFloor && rampPlanePriceByFloor.some(f => f.count > 0)) {
+        const floorPriceTable = createFloorPriceTable(rampPlanePriceByFloor);
+        tablesContainer.appendChild(floorPriceTable);
+    }
+
+    content.appendChild(tablesContainer);
+    container.appendChild(content);
+}
+
+
+/**
+ * 渲染銷售速度圖表
+ * @param {HTMLElement} container - The container element to render the chart in.
+ * @param {object} salesVelocityData - The sales velocity data from the analysis.
+ */
+export function renderSalesVelocity(container, salesVelocityData) {
+    const chartContainer = document.createElement('div');
+    chartContainer.id = 'sales-velocity-chart-container';
+    chartContainer.style.height = '400px';
+
+    const controlsContainer = document.createElement('div');
+    controlsContainer.className = 'chart-controls';
+
+    const viewSelector = document.createElement('select');
+    viewSelector.id = 'sales-velocity-view-selector';
+    ['weekly', 'monthly', 'quarterly', 'yearly'].forEach(view => {
+        const option = document.createElement('option');
+        option.value = view;
+        option.textContent = { weekly: '週', monthly: '月', quarterly: '季', yearly: '年' }[view];
+        viewSelector.appendChild(option);
+    });
+    viewSelector.value = 'monthly';
+
+    const dataTypeSelector = document.createElement('select');
+    dataTypeSelector.id = 'sales-velocity-datatype-selector';
+    ['count', 'price', 'area'].forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = { count: '戶數', price: '總價', area: '面積' }[type];
+        dataTypeSelector.appendChild(option);
+    });
+    
+    controlsContainer.innerHTML = '<span>時間單位:</span>';
+    controlsContainer.appendChild(viewSelector);
+    controlsContainer.innerHTML += '<span style="margin-left: 15px;">數據類型:</span>';
+    controlsContainer.appendChild(dataTypeSelector);
+    
+    container.appendChild(controlsContainer);
+    container.appendChild(chartContainer);
+
+    let chart = null;
+
+    const drawChart = () => {
+        const selectedView = viewSelector.value;
+        const selectedDataType = dataTypeSelector.value;
+        const data = salesVelocityData[selectedView];
+        const allRoomTypes = salesVelocityData.allRoomTypes;
+
+        if (chart) {
+            chart.dispose();
+        }
+        chart = echarts.init(chartContainer);
+
+        const timeKeys = Object.keys(data).sort();
+        const series = allRoomTypes.map(roomType => {
+            return {
+                name: roomType,
+                type: 'bar',
+                stack: 'total',
+                emphasis: { focus: 'series' },
+                data: timeKeys.map(timeKey => {
+                    const periodData = data[timeKey][roomType];
+                    if (!periodData) return 0;
+                    if (selectedDataType === 'count') return periodData.count;
+                    if (selectedDataType === 'price') return parseFloat((periodData.priceSum / 10000).toFixed(2)); // 轉為億
+                    if (selectedDataType === 'area') return parseFloat(periodData.areaSum.toFixed(2));
+                    return 0;
+                })
+            };
+        });
+
+        const yAxisName = { count: '戶', price: '億', area: '坪' }[selectedDataType];
+
+        const option = {
+            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+            legend: { data: allRoomTypes, top: 'bottom' },
+            grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
+            xAxis: [{ type: 'category', data: timeKeys }],
+            yAxis: [{ type: 'value', name: yAxisName }],
+            series: series,
+            dataZoom: [{ type: 'inside' }, { type: 'slider' }],
         };
-        const sortKeyA = mapToNewCategory(a);
-        const sortKeyB = mapToNewCategory(b);
-        const indexA = sortOrder.indexOf(sortKeyA);
-        const indexB = sortOrder.indexOf(sortKeyB);
+        chart.setOption(option);
+    };
+
+    viewSelector.addEventListener('change', drawChart);
+    dataTypeSelector.addEventListener('change', drawChart);
+    
+    drawChart();
+     // 監聽側邊欄寬度變化，重新渲染圖表
+    const sidebar = document.getElementById('sidebar');
+    const resizeObserver = new ResizeObserver(() => {
+        if (chart) {
+            chart.resize();
+        }
+    });
+    resizeObserver.observe(sidebar);
+    resizeObserver.observe(report-container);
+}
+
+
+/**
+ * 渲染房型總價段分佈圖表 (Boxplot)
+ * @param {HTMLElement} container - The container element to render the chart in.
+ * @param {Array<object>} priceBandData - The data for the price band analysis.
+ */
+export function renderPriceBandAnalysis(container, priceBandData) {
+    const chartContainer = document.createElement('div');
+    chartContainer.id = 'price-band-chart-container';
+    chartContainer.style.height = '450px';
+    container.appendChild(chartContainer);
+
+    const chart = echarts.init(chartContainer);
+    
+    // 排序數據，優先顯示房數，然後是衛浴數
+    priceBandData.sort((a, b) => {
+        const roomTypeOrder = ['套房', '1房', '2房', '3房', '4房', '5房以上', '毛胚'];
+        const indexA = roomTypeOrder.indexOf(a.roomType);
+        const indexB = roomTypeOrder.indexOf(b.roomType);
+        
+        if (indexA !== -1 && indexB !== -1) {
+            if (indexA !== indexB) return indexA - indexB;
+            // 房型相同時，按衛浴數排序
+            return (a.bathrooms || 0) - (b.bathrooms || 0);
+        }
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        // 其他類型按原樣排序
+        return a.roomType.localeCompare(b.roomType);
+    });
+
+    const categories = priceBandData.map(d => d.bathrooms ? `${d.roomType}-${d.bathrooms}衛` : d.roomType);
+    const boxplotData = priceBandData.map(d => [d.minPrice, d.q1Price, d.medianPrice, d.q3Price, d.maxPrice, d.count]);
+
+    const option = {
+        title: {
+            text: '各房型總價分佈 (盒鬚圖)',
+            left: 'center',
+            textStyle: { fontSize: 16 }
+        },
+        tooltip: {
+            trigger: 'item',
+            axisPointer: { type: 'shadow' },
+            formatter: function (params) {
+                const data = params.value;
+                const name = params.name;
+                return [
+                    `${name} (共 ${data[5]} 戶)`,
+                    `最高價: ${data[4].toFixed(0)} 萬`,
+                    `上四分位 (Q3): ${data[3].toFixed(0)} 萬`,
+                    `中位數: ${data[2].toFixed(0)} 萬`,
+                    `下四分位 (Q1): ${data[1].toFixed(0)} 萬`,
+                    `最低價: ${data[0].toFixed(0)} 萬`,
+                ].join('<br/>');
+            }
+        },
+        grid: {
+            left: '10%',
+            right: '10%',
+            bottom: '15%'
+        },
+        xAxis: {
+            type: 'category',
+            data: categories,
+            boundaryGap: true,
+            nameGap: 30,
+            splitArea: { show: false },
+            axisLabel: {
+                formatter: function (value) {
+                    return value.replace('-', '\n'); // 讓標籤可以換行
+                }
+            },
+            splitLine: { show: false }
+        },
+        yAxis: {
+            type: 'value',
+            name: '總價 (萬)',
+            splitArea: { show: true }
+        },
+        series: [
+            {
+                name: '總價分佈',
+                type: 'boxplot',
+                data: boxplotData,
+                itemStyle: {
+                    borderColor: '#337ab7'
+                }
+            }
+        ],
+        dataZoom: [{ type: 'inside' }, { type: 'slider', bottom: 10 }],
+    };
+
+    chart.setOption(option);
+    // 監聽側邊欄寬度變化，重新渲染圖表
+    const sidebar = document.getElementById('sidebar');
+    const resizeObserver = new ResizeObserver(() => {
+        if (chart) {
+            chart.resize();
+        }
+    });
+    resizeObserver.observe(sidebar);
+    resizeObserver.observe(report-container);
+}
+
+
+/**
+ * 渲染房型面積分佈圖表 (Violin Plot)
+ * @param {HTMLElement} container - The container element to render the chart in.
+ * @param {object} areaDistributionData - The data for the area distribution.
+ */
+export function renderAreaDistribution(container, areaDistributionData) {
+    const chartContainer = document.createElement('div');
+    chartContainer.id = 'area-distribution-chart-container';
+    chartContainer.style.height = '450px';
+    container.appendChild(chartContainer);
+
+    const chart = echarts.init(chartContainer);
+
+    // 準備 ECharts 的 dataset
+    const source = [];
+    const roomTypes = Object.keys(areaDistributionData).sort((a, b) => {
+        const roomTypeOrder = ['套房', '1房', '2房', '3房', '4房', '5房以上', '毛胚'];
+        const indexA = roomTypeOrder.indexOf(a);
+        const indexB = roomTypeOrder.indexOf(b);
         if (indexA !== -1 && indexB !== -1) return indexA - indexB;
         if (indexA !== -1) return -1;
         if (indexB !== -1) return 1;
         return a.localeCompare(b);
     });
 
-    if (state.selectedPriceBandRoomTypes.length === 0) {
-        const defaultSelections = ['套房', '1房', '2房', '3房', '4房', '毛胚'];
-        state.selectedPriceBandRoomTypes = allRoomTypes.filter(roomType => defaultSelections.includes(roomType));
-    }
-
-    dom.priceBandRoomFilterContainer.innerHTML = allRoomTypes.map(roomType => {
-        const isActive = state.selectedPriceBandRoomTypes.includes(roomType);
-        return `<button class="capsule-btn ${isActive ? 'active' : ''}" data-room-type="${roomType}">${roomType}</button>`;
-    }).join('');
-
-    const filteredDataForTable = priceBandAnalysis.filter(item => state.selectedPriceBandRoomTypes.includes(item.roomType));
-
-    filteredDataForTable.sort((a, b) => { 
-        const mapToNewCategory = (type) => {
-            if (type === '工廠/倉庫') return '廠辦/工廠';
-            if (type === '辦公') return '辦公/事務所';
-            return type;
-        };
-        const sortKeyA = mapToNewCategory(a.roomType);
-        const sortKeyB = mapToNewCategory(b.roomType);
-        const indexA = sortOrder.indexOf(sortKeyA);
-        const indexB = sortOrder.indexOf(sortKeyB);
-        if (indexA !== indexB) return (indexA === -1 ? 99 : indexA) - (indexB === -1 ? 99 : indexB);
-        return (a.bathrooms || 0) - (b.bathrooms || 0);
-    });
-    
-    const tableHeaders = ['房型', '衛浴', '筆數', '平均總價(萬)', '最低總價(萬)', '1/4位總價(萬)', '中位數總價(萬)', '3/4位總價(萬)', '最高總價(萬)'];
-
-    let headerHtml = '<thead><tr>' + tableHeaders.map(h => `<th>${h}</th>`).join('') + '</tr></thead>';
-    let bodyHtml = '<tbody>';
-
-    if (filteredDataForTable.length > 0) {
-        filteredDataForTable.forEach(item => { 
-            bodyHtml += `<tr class="hover:bg-dark-card transition-colors"><td>${item.roomType}</td><td>${item.bathrooms !== null ? item.bathrooms : '-'}</td><td>${item.count.toLocaleString()}</td><td>${ui.formatNumber(item.avgPrice, 0)}</td><td>${ui.formatNumber(item.minPrice, 0)}</td><td>${ui.formatNumber(item.q1Price, 0)}</td><td>${ui.formatNumber(item.medianPrice, 0)}</td><td>${ui.formatNumber(item.q3Price, 0)}</td><td>${ui.formatNumber(item.maxPrice, 0)}</td></tr>`; 
-        });
-    } else {
-        bodyHtml += `<tr><td colspan="${tableHeaders.length}" class="text-center p-4 text-gray-500">請至少選擇一個房型以顯示數據</td></tr>`;
-    }
-
-    bodyHtml += '</tbody>';
-    dom.priceBandTable.innerHTML = headerHtml + bodyHtml;
-
-    renderPriceBandChart();
-}
-
-export function renderUnitPriceReport() {
-    if (!state.analysisDataCache || !state.analysisDataCache.unitPriceAnalysis) {
-        renderStatsBlock(null, null, 'residential-stats-table-container', 'residential-stats-extra-info', '無住宅交易數據');
-        renderStatsBlock(null, null, 'office-stats-table-container', 'office-stats-extra-info', '無事務所/辦公室交易數據');
-        renderStatsBlock(null, null, 'store-stats-table-container', 'store-stats-extra-info', '無店鋪交易數據');
-        if (dom.typeComparisonTableContainer) {
-            dom.typeComparisonTableContainer.innerHTML = '<p class="text-gray-500 text-center p-4">無資料可供比較</p>';
-        }
-        return;
-    }
-
-    const { residentialStats, officeStats, storeStats, typeComparison } = state.analysisDataCache.unitPriceAnalysis;
-    
-    renderStatsBlock(residentialStats, state.currentAverageType, 'residential-stats-table-container', 'residential-stats-extra-info', '無住宅交易數據');
-    renderStatsBlock(officeStats, state.currentAverageType, 'office-stats-table-container', 'office-stats-extra-info', '無事務所/辦公室交易數據');
-    renderStatsBlock(storeStats, state.currentAverageType, 'store-stats-table-container', 'store-stats-extra-info', '無店鋪交易數據');
-
-    const comparisonContainer = dom.typeComparisonTableContainer;
-    if (comparisonContainer) {
-        if (typeComparison && typeComparison.length > 0) {
-            let comparisonHtml = `<table class="min-w-full divide-y divide-gray-800"><thead><tr><th>建案名稱</th><th>住宅均價(萬/坪)</th><th>店舖均價(萬/坪)</th><th>店舖對住宅倍數</th><th>事務所均價(萬/坪)</th><th>事務所對住宅倍數</th></tr></thead><tbody>`;
-            typeComparison.forEach(item => {
-                const residentialAvgToShow = (item.residentialAvg && typeof item.residentialAvg === 'object') ? item.residentialAvg[state.currentAverageType] : 0;
-                const shopAvgToShow = (item.shopAvg && typeof item.shopAvg === 'object') ? item.shopAvg[state.currentAverageType] : 0;
-                const officeAvgToShow = (item.officeAvg && typeof item.officeAvg === 'object') ? item.officeAvg[state.currentAverageType] : 0;
-                comparisonHtml += `<tr class="hover:bg-dark-card"><td>${item.projectName}</td><td>${residentialAvgToShow > 0 ? ui.formatNumber(residentialAvgToShow) : '-'}</td><td>${shopAvgToShow > 0 ? ui.formatNumber(shopAvgToShow) : '-'}</td><td>${item.shopMultiple > 0 ? ui.formatNumber(item.shopMultiple) + ' 倍' : '-'}</td><td>${officeAvgToShow > 0 ? ui.formatNumber(officeAvgToShow) : '-'}</td><td>${item.officeMultiple > 0 ? ui.formatNumber(item.officeMultiple) + ' 倍' : '-'}</td></tr>`;
-            });
-            comparisonHtml += `</tbody></table>`;
-            comparisonContainer.innerHTML = comparisonHtml;
-        } else {
-            comparisonContainer.innerHTML = '<p class="text-gray-500 text-center p-4">無符合條件的建案可進行類型比較。</p>';
+    for (const roomType of roomTypes) {
+        for (const area of areaDistributionData[roomType]) {
+            source.push([roomType, area]);
         }
     }
-}
 
-export function renderParkingAnalysisReport() {
-    if (!state.analysisDataCache || !state.analysisDataCache.parkingAnalysis) return;
-    const { parkingRatio, avgPriceByType, rampPlanePriceByFloor } = state.analysisDataCache.parkingAnalysis;
-    if (parkingRatio) {
-        dom.parkingRatioTableContainer.innerHTML = `<table class="min-w-full divide-y divide-gray-800"><thead><tr><th>配置類型</th><th>交易筆數</th><th>佔比(%)</th></tr></thead><tbody><tr class="hover:bg-dark-card"><td>有搭車位</td><td>${parkingRatio.withParking.count.toLocaleString()}</td><td>${ui.formatNumber(parkingRatio.withParking.percentage, 2)}%</td></tr><tr class="hover:bg-dark-card"><td>沒搭車位</td><td>${parkingRatio.withoutParking.count.toLocaleString()}</td><td>${ui.formatNumber(parkingRatio.withoutParking.percentage, 2)}%</td></tr></tbody></table>`;
-    } else {
-        dom.parkingRatioTableContainer.innerHTML = '<p class="text-gray-500">無車位配比資料可供分析。</p>';
-    }
-    if (avgPriceByType && avgPriceByType.length > 0) {
-        let avgPriceHtml = `<table class="min-w-full divide-y divide-gray-800"><thead><tr><th>車位類型</th><th>交易筆數</th><th>車位總數</th><th>平均單價(萬)</th><th>單價中位數(萬)</th><th>單價3/4位數(萬)</th></tr></thead><tbody>`;
-        avgPriceByType.sort((a, b) => b.transactionCount - a.transactionCount).forEach(item => { avgPriceHtml += `<tr class="hover:bg-dark-card"><td>${item.type}</td><td>${item.transactionCount.toLocaleString()}</td><td>${item.count.toLocaleString()}</td><td>${ui.formatNumber(item.avgPrice, 0)}</td><td>${ui.formatNumber(item.medianPrice, 0)}</td><td>${ui.formatNumber(item.q3Price, 0)}</td></tr>`; });
-        avgPriceHtml += `</tbody></table>`;
-        dom.avgPriceByTypeTableContainer.innerHTML = avgPriceHtml;
-    } else {
-        dom.avgPriceByTypeTableContainer.innerHTML = '<p class="text-gray-500">無含車位的交易資料可供分析。</p>';
-    }
-    if (rampPlanePriceByFloor && rampPlanePriceByFloor.some(item => item.count > 0)) {
-        const floorMapping = {'B1': '地下一樓', 'B2': '地下二樓', 'B3': '地下三樓', 'B4': '地下四樓', 'B5_below': '地下五樓含以下'};
-        let floorPriceHtml = `<table class="min-w-full divide-y divide-gray-800"><thead><tr><th>樓層</th><th>筆數</th><th>均價(萬)</th><th>中位數(萬)</th><th>3/4位數(萬)</th><th>最高價(萬)</th><th>最低價(萬)</th></tr></thead><tbody>`;
-        rampPlanePriceByFloor.forEach(item => {
-            if (item && item.count > 0) {
-                const maxPriceTooltip = item.maxPriceProject ? `建案: ${item.maxPriceProject}\n戶型: ${item.maxPriceUnit || '-'}\n樓層: ${item.maxPriceFloor || '-'}` : '';
-                const minPriceTooltip = item.minPriceProject ? `建案: ${item.minPriceProject}\n戶型: ${item.minPriceUnit || '-'}\n樓層: ${item.minPriceFloor || '-'}` : '';
-                floorPriceHtml += `<tr class="hover:bg-dark-card"><td>${floorMapping[item.floor] || item.floor}</td><td>${item.count.toLocaleString()}</td><td>${ui.formatNumber(item.avgPrice, 0)}</td><td>${ui.formatNumber(item.medianPrice, 0)}</td><td>${ui.formatNumber(item.q3Price, 0)}</td><td><span class="has-tooltip" data-tooltip="${maxPriceTooltip}">${ui.formatNumber(item.maxPrice, 0)}</span></td><td><span class="has-tooltip" data-tooltip="${minPriceTooltip}">${ui.formatNumber(item.minPrice, 0)}</span></td></tr>`;
+    const option = {
+        dataset: [{ source: source }, { transform: { type: 'boxplot', config: { itemNameFormatter: '{value}' } } }],
+        title: {
+            text: '各房型面積分佈 (小提琴圖)',
+            left: 'center',
+            textStyle: { fontSize: 16 }
+        },
+        tooltip: {
+            trigger: 'item',
+            formatter: (params) => {
+                if (params.seriesType === 'boxplot') {
+                     return [
+                        `${params.name}`,
+                        `最大面積: ${params.value[5].toFixed(1)} 坪`,
+                        `Q3: ${params.value[4].toFixed(1)} 坪`,
+                        `中位數: ${params.value[3].toFixed(1)} 坪`,
+                        `Q1: ${params.value[2].toFixed(1)} 坪`,
+                        `最小面積: ${params.value[1].toFixed(1)} 坪`,
+                    ].join('<br/>');
+                }
+                return `${params.value[0]}: ${params.value[1].toFixed(1)} 坪`;
             }
-        });
-        floorPriceHtml += `</tbody></table>`;
-        dom.rampPlanePriceByFloorTableContainer.innerHTML = floorPriceHtml;
-    } else {
-        dom.rampPlanePriceByFloorTableContainer.innerHTML = '<p class="text-gray-500">無符合條件的坡道平面車位交易資料可供分析。</p>';
-    }
-}
+        },
+        grid: {
+            left: '10%',
+            right: '10%',
+            bottom: '15%'
+        },
+        xAxis: {
+            type: 'category',
+            data: roomTypes,
+            boundaryGap: true,
+        },
+        yAxis: {
+            type: 'value',
+            name: '面積 (坪)',
+            splitArea: { show: true }
+        },
+        series: [
+            {
+                name: '面積分佈',
+                type: 'boxplot',
+                datasetIndex: 1,
+                itemStyle: {
+                    color: '#fff',
+                    borderColor: '#337ab7'
+                },
+                boxWidth: [15, 25]
+            },
+            {
+                name: '原始數據',
+                type: 'violin',
+                data: areaDistributionData,
+                itemStyle: {
+                    color: 'rgba(51, 122, 183, 0.5)'
+                },
+                points: {
+                    show: true,
+                    symbolSize: 3,
+                    itemStyle: {
+                        color: 'rgba(0,0,0,0.3)'
+                    }
+                }
+            }
+        ],
+        dataZoom: [{ type: 'inside' }, { type: 'slider', bottom: 10 }],
+    };
 
-export function renderSalesVelocityReport() {
-    if (!state.analysisDataCache || !state.analysisDataCache.salesVelocityAnalysis) return;
-    
-    const { allRoomTypes } = state.analysisDataCache.salesVelocityAnalysis;
-
-    if (allRoomTypes && allRoomTypes.length > 0) {
-        const sortOrder = ['套房', '1房', '2房', '3房', '4房', '5房以上', '毛胚', '店舖', '辦公/事務所', '廠辦/工廠', '其他'];
-        allRoomTypes.sort((a, b) => {
-            const indexA = sortOrder.indexOf(a);
-            const indexB = sortOrder.indexOf(b);
-            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-            if (indexA !== -1) return -1;
-            if (indexB !== -1) return 1;
-            return a.localeCompare(b);
-        });
-
-        const defaultSelections = ['1房', '2房', '3房'];
-        state.selectedVelocityRooms = allRoomTypes.filter(roomType => defaultSelections.includes(roomType));
-        if (state.selectedVelocityRooms.length === 0) {
-             state.selectedVelocityRooms = [...allRoomTypes];
+    chart.setOption(option);
+    // 監聽側邊欄寬度變化，重新渲染圖表
+    const sidebar = document.getElementById('sidebar');
+    const resizeObserver = new ResizeObserver(() => {
+        if (chart) {
+            chart.resize();
         }
-
-        dom.velocityRoomFilterContainer.innerHTML = allRoomTypes.map(roomType => {
-            const isActive = state.selectedVelocityRooms.includes(roomType);
-            return `<button class="capsule-btn ${isActive ? 'active' : ''}" data-room-type="${roomType}">${roomType}</button>`;
-        }).join('');
-    } else {
-        dom.velocityRoomFilterContainer.innerHTML = '<p class="text-gray-500 text-sm">無可用房型</p>';
-    }
-    renderVelocityTable();
-    renderSalesVelocityChart();
-    renderAreaHeatmap();
-}
-
-export function renderPriceGridAnalysis() {
-    state.isHeatmapActive = false;
-    dom.analyzeHeatmapBtn.innerHTML = `<i class="fas fa-fire mr-2"></i>開始分析`;
-    dom.backToGridBtn.classList.add('hidden');
-    dom.heatmapInfoContainer.classList.add('hidden');
-    dom.heatmapSummaryTableContainer.classList.add('hidden');
-    dom.heatmapHorizontalComparisonTableContainer.classList.add('hidden');
-
-    const reportContent = dom.priceGridReportContent;
-    if (!state.analysisDataCache || !state.analysisDataCache.priceGridAnalysis || !state.analysisDataCache.priceGridAnalysis.projectNames || state.analysisDataCache.priceGridAnalysis.projectNames.length === 0) {
-        reportContent.querySelector('.my-4.p-4').classList.add('hidden');
-        dom.horizontalPriceGridContainer.innerHTML = '<p class="text-gray-500 p-4 text-center">無垂直水平分析資料。</p>';
-        return;
-    }
-    
-    reportContent.querySelector('.my-4.p-4').classList.remove('hidden');
-    const { projectNames } = state.analysisDataCache.priceGridAnalysis;
-
-    if (projectNames && projectNames.length > 0) {
-        state.selectedPriceGridProject = null;
-        
-        const filterHtml = projectNames.map(name => `<button class="capsule-btn" data-project="${name}">${name}</button>`).join('');
-        dom.priceGridProjectFilterContainer.innerHTML = filterHtml;
-        dom.priceGridProjectFilterContainer.parentElement.classList.remove('hidden');
-        
-        displayCurrentPriceGrid();
-    } else {
-        state.selectedPriceGridProject = null;
-        dom.priceGridProjectFilterContainer.parentElement.classList.add('hidden');
-        dom.unitColorLegendContainer.innerHTML = '';
-        dom.horizontalPriceGridContainer.innerHTML = '<p class="text-gray-500 p-4 text-center">無特定建案資料可供分析。</p>';
-    }
+    });
+    resizeObserver.observe(sidebar);
+    resizeObserver.observe(report-container);
 }
