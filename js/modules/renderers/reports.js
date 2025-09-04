@@ -145,6 +145,7 @@ export function renderPriceBandReport() {
         return (a.bathrooms || 0) - (b.bathrooms || 0);
     });
     
+    // ▼▼▼ 【BUG 修正處】 ▼▼▼
     const tableHeaders = ['房型', '衛浴', '筆數', '平均總價(萬)', '最低總價(萬)', '1/4位總價(萬)', '中位數總價(萬)', '3/4位總價(萬)', '最高總價(萬)'];
 
     let headerHtml = '<thead><tr>' + tableHeaders.map(h => `<th>${h}</th>`).join('') + '</tr></thead>';
@@ -152,11 +153,22 @@ export function renderPriceBandReport() {
 
     if (filteredDataForTable.length > 0) {
         filteredDataForTable.forEach(item => { 
-            bodyHtml += `<tr class="hover:bg-dark-card transition-colors"><td>${item.roomType}</td><td>${item.bathrooms !== null ? item.bathrooms : '-'}</td><td>${item.count.toLocaleString()}</td><td>${ui.formatNumber(item.avgPrice, 0)}</td><td>${ui.formatNumber(item.minPrice, 0)}</td><td>${ui.formatNumber(item.q1Price, 0)}</td><td>${ui.formatNumber(item.medianPrice, 0)}</td><td>${ui.formatNumber(item.q3Price, 0)}</td><td>${ui.formatNumber(item.maxPrice, 0)}</td></tr>`; 
+            bodyHtml += `<tr class="hover:bg-dark-card transition-colors">
+                            <td>${item.roomType}</td>
+                            <td>${item.bathrooms !== null ? item.bathrooms : '-'}</td>
+                            <td>${item.count.toLocaleString()}</td>
+                            <td>${ui.formatNumber(item.avgPrice, 0)}</td>
+                            <td>${ui.formatNumber(item.minPrice, 0)}</td>
+                            <td>${ui.formatNumber(item.q1Price, 0)}</td>
+                            <td>${ui.formatNumber(item.medianPrice, 0)}</td>
+                            <td>${ui.formatNumber(item.q3Price, 0)}</td>
+                            <td>${ui.formatNumber(item.maxPrice, 0)}</td>
+                         </tr>`; 
         });
     } else {
         bodyHtml += `<tr><td colspan="${tableHeaders.length}" class="text-center p-4 text-gray-500">請至少選擇一個房型以顯示數據</td></tr>`;
     }
+    // ▲▲▲ 【BUG 修正結束】 ▲▲▲
 
     bodyHtml += '</tbody>';
     dom.priceBandTable.innerHTML = headerHtml + bodyHtml;
@@ -166,7 +178,6 @@ export function renderPriceBandReport() {
 
 export function renderUnitPriceReport() {
     if (!state.analysisDataCache || !state.analysisDataCache.unitPriceAnalysis) {
-        // Clear all containers if there's no data
         renderStatsBlock(null, null, 'residential-stats-table-container', 'residential-stats-extra-info', '無住宅交易數據');
         renderStatsBlock(null, null, 'office-stats-table-container', 'office-stats-extra-info', '無事務所/辦公室交易數據');
         renderStatsBlock(null, null, 'store-stats-table-container', 'store-stats-extra-info', '無店鋪交易數據');
