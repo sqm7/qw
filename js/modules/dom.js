@@ -1,6 +1,7 @@
 // js/modules/dom.js 
 
 export const dom = {
+  typeComparisonTableContainer: document.getElementById('type-comparison-table-container'),
   countySelect: document.getElementById('county'),
   filterCard: document.getElementById('filter-card'),
   districtFilterWrapper: document.getElementById('district-filter-wrapper'),
