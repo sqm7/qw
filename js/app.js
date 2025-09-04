@@ -31,7 +31,7 @@ import {
     handleLegendClick,
     handleShareClick,
     copyShareUrl,
-    handleExcludeCommercialToggle // 【第1步：確保這裡有匯入新函式】
+    handleExcludeCommercialToggle // 【第1步：確保匯入新函式】
 } from './modules/eventHandlers.js';
 import { state } from './modules/state.js';
 
@@ -92,7 +92,7 @@ function initialize() {
     dom.searchBtn.addEventListener('click', () => { state.currentPage = 1; mainFetchData(); });
     dom.analyzeBtn.addEventListener('click', mainAnalyzeData);
     
-    // 【第2步：在這裡加上一行事件綁定】
+    // 【第2步：在此處加上一行事件綁定】
     dom.excludeCommercialToggle.addEventListener('click', handleExcludeCommercialToggle);
 
     dom.countySelect.addEventListener('change', updateDistrictOptions);
