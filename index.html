@@ -129,6 +129,16 @@
         <div id="message-area" class="text-center p-8 text-gray-400">請設定篩選條件後點擊查詢或分析。</div>
         
         <div id="ranking-report-content" class="tab-content">
+           <div class="flex justify-end items-center mb-4 report-header">
+                <div class="flex items-center">
+                    <label for="ranking-filter-toggle" class="text-sm font-medium text-gray-400 mr-3">僅計算住宅類</label>
+                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="ranking-filter-toggle" id="ranking-filter-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                        <label for="ranking-filter-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                    </div>
+                    <span class="text-xs text-gray-500 has-tooltip" data-tooltip="啟用後，將排除所有主要用途為「商業用」、「辦公」或建物型態為「店舖」、「事務所」等的交易紀錄，讓單價排名更精確地反映住宅行情。">(排除店舖、辦公室等)</span>
+                </div>
+           </div>
            <div id="metric-cards-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8"></div>
            <div id="ranking-chart-container" class="mb-8"></div>
            <div class="overflow-x-auto">
