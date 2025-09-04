@@ -1,5 +1,7 @@
 // js/modules/state.js
 
+import { dom } from './dom.js'; // 【第1步：在檔案最上方加入這行匯入】
+
 export const state = {
     // Data and Pagination
     currentPage: 1,
@@ -34,11 +36,11 @@ export const state = {
     isHeatmapActive: false,
     currentLegendFilter: { type: null, value: null },
 
-    excludeCommercial: false, // 【新增此行】
+    excludeCommercial: false,
 };
 
 export function getFilters() {
-    const dom = window.dom; // Accessing global dom object
+    // 【第2步：移除 "window."，直接使用匯入的 dom】
     return {
         county: dom.countySelect.value,
         districts: state.selectedDistricts,
@@ -48,6 +50,6 @@ export function getFilters() {
         dateEnd: dom.dateEndInput.value,
         projectNames: state.selectedProjects,
         floorPremium: parseFloat(dom.floorPremiumInput.value),
-        excludeCommercial: state.excludeCommercial, // 【新增此行】
+        excludeCommercial: state.excludeCommercial,
     };
 }
