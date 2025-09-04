@@ -31,7 +31,7 @@ import {
     handleLegendClick,
     handleShareClick,
     copyShareUrl,
-    handleExcludeCommercialToggle
+    handleExcludeCommercialToggle // 【第1步：確保匯入新函式】
 } from './modules/eventHandlers.js';
 import { state } from './modules/state.js';
 import * as reportRenderer from './modules/renderers/reports.js';
@@ -61,7 +61,7 @@ async function setupUserStatus() {
 }
 
 function initializeApp() {
-    // 【關鍵】: 恢復您原始的 window 物件掛載
+    // 【關鍵】: 恢復您原始的 window 物件掛載，這是修正所有問題的核心
     window.dom = dom;
     window.state = state;
 
@@ -89,7 +89,10 @@ function initializeApp() {
     // --- Event Listeners ---
     dom.searchBtn.addEventListener('click', () => { state.currentPage = 1; mainFetchData(); });
     dom.analyzeBtn.addEventListener('click', mainAnalyzeData);
+    
+    // 【第2步：在此處加上一行事件綁定】
     dom.excludeCommercialToggle.addEventListener('click', handleExcludeCommercialToggle);
+
     dom.countySelect.addEventListener('change', updateDistrictOptions);
     dom.typeSelect.addEventListener('change', toggleAnalyzeButtonState);
     dom.dateRangeSelect.addEventListener('change', handleDateRangeChange);
