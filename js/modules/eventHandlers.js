@@ -24,6 +24,7 @@ export async function mainFetchData() {
         state.totalRecords = result.count || 0;
         if (!result.data || result.data.length === 0) {
             ui.showMessage('找不到符合條件的資料。');
+            tableRenderer.renderTable([]); // 清空表格
             componentRenderer.renderPagination();
             return;
         }
@@ -36,6 +37,7 @@ export async function mainFetchData() {
         console.error('查詢錯誤:', error);
         ui.showMessage(`查詢錯誤: ${error.message}`, true);
         state.totalRecords = 0;
+        tableRenderer.renderTable([]); // 清空表格
         componentRenderer.renderPagination();
     }
 }
@@ -49,6 +51,9 @@ export async function mainAnalyzeData() {
         if (!state.analysisDataCache.coreMetrics || state.analysisDataCache.projectRanking.length === 0) {
             const msg = state.analysisDataCache.message || '找不到符合條件的分析資料。';
             ui.showMessage(msg);
+            // 確保即使沒有數據，報告區塊也能被清空或隱藏
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            dom.tabsContainer.classList.add('hidden');
             return;
         }
         dom.messageArea.classList.add('hidden');
@@ -109,9 +114,11 @@ export async function mainFetchProjectNameSuggestions(query) {
     }
 }
 
+// 【新增此函式】
 export function handleExcludeCommercialToggle() {
     state.excludeCommercial = dom.excludeCommercialToggle.checked;
     
+    // 如果已有分析資料，重新觸發分析以應用新的篩選條件
     if (state.analysisDataCache) {
         mainAnalyzeData();
     }
@@ -254,14 +261,15 @@ export function clearSelectedProjects() {
     suggestionCheckboxes.forEach(cb => cb.checked = false);
 }
 
+// 【修正此函式】
 export function toggleAnalyzeButtonState() {
     const isCountySelected = !!dom.countySelect.value;
     const isValidType = dom.typeSelect.value === '預售交易';
-    
-    // 查詢按鈕的啟用邏輯
-    dom.searchBtn.disabled = !isCountySelected;
 
-    // 分析相關按鈕的啟用邏輯
+    // 將查詢按鈕的邏輯也加進來
+    dom.searchBtn.disabled = !isCountySelected;
+    
+    // 分析按鈕的邏輯
     dom.analyzeBtn.disabled = !(isCountySelected && isValidType);
     dom.analyzeHeatmapBtn.disabled = !(isCountySelected && isValidType);
 }
