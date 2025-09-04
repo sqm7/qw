@@ -54,9 +54,7 @@ export function renderPriceGapHeatmap() {
     renderHeatmapLegends();
     state.currentLegendFilter = { type: null, value: null };
     const { horizontalGrid, sortedFloors, sortedUnits, unitColorMap, summary } = projectAnalysisData;
-    
-    // ▼▼▼ 【修改處】移除多餘的標籤，並將表格 class 從 `min-w-full divide-y ...` 改為 `price-grid-table` ▼▼▼
-    let tableHtml = '<table class="price-grid-table">';
+    let tableHtml = '<table class="min-w-full divide-y divide-gray-800 border-collapse">';
     let headerHtml = '<thead><tr><th class="sticky left-0 bg-dark-card z-10 p-2">樓層 \\ 戶別</th>';
     sortedUnits.forEach(unit => { headerHtml += `<th class="text-center p-2" style="background-color:${unitColorMap[unit] || '#4b5563'}80;">${unit}</th>`; });
     headerHtml += '</tr></thead>';
@@ -66,8 +64,8 @@ export function renderPriceGapHeatmap() {
         sortedUnits.forEach(unit => {
             const cellDataArray = horizontalGrid[floor] ? horizontalGrid[floor][unit] : null;
             if (cellDataArray && cellDataArray.length > 0) {
-                // ▼▼▼ 【修改處】解構出 isOffice 旗標 ▼▼▼
                 const cellContent = cellDataArray.map(tx => {
+                    // ▼▼▼ 【修改處】解構出 isOffice 旗標 ▼▼▼
                     const { premium, isStorefront, isOffice, remark, tooltipInfo } = tx;
                     // ▲▲▲ 【修改結束】 ▲▲▲
                     const remarkText = remark || '';
@@ -116,18 +114,11 @@ export function renderPriceGapHeatmap() {
                         }
                     }
 
-                    // ▼▼▼ 【修改處】將單價和日期放在獨立的 div 中，並移除 inline-style ▼▼▼
-                    return `<div class="has-tooltip py-1 heatmap-cell" data-tooltip="${formattedTooltip}" data-premium-category="${premiumCategory}" data-special-type="${specialType}" style="background-color: ${bgColor}; border: ${specialType === 'anchor' ? '1px solid #06b6d4' : 'none'};">
-                                <div class="font-semibold">${iconHtml}${tx.unitPrice.toFixed(1)}萬</div>
-                                <div class="text-xs text-gray-400">(${tx.transactionDate})</div>
-                            </div>`;
-                    // ▲▲▲ 【修改結束】 ▲▲▲
+                    return `<div class="has-tooltip py-1 heatmap-cell" data-tooltip="${formattedTooltip}" data-premium-category="${premiumCategory}" data-special-type="${specialType}" style="border-radius: 4px; margin-bottom: 4px; padding: 2px 4px; background-color: ${bgColor}; border: ${specialType === 'anchor' ? '1px solid #06b6d4' : 'none'};"> <span class="font-semibold">${iconHtml}${tx.unitPrice.toFixed(1)}萬</span><br><span class="text-xs text-gray-400">(${tx.transactionDate})</span> </div>`;
                 }).join('');
-                // ▼▼▼ 【修改處】移除多餘的標籤，並將 padding 等樣式移至 CSS class ▼▼▼
-                bodyHtml += `<td><div class="flex flex-col gap-1">${cellContent}</div></td>`;
-                // ▲▲▲ 【修改結束】 ▲▲▲
+                bodyHtml += `<td style="vertical-align: top; padding: 4px 8px; border-left: 1px solid #374151;">${cellContent}</td>`;
             } else {
-                bodyHtml += `<td style="background-color: #1a1d29;">-</td>`;
+                bodyHtml += `<td style="background-color: #1a1d29; border-left: 1px solid #374151;">-</td>`;
             }
         });
         bodyHtml += `</tr>`;
@@ -180,9 +171,7 @@ function renderHorizontalPriceGrid(grid, floors, units, colorMap) {
         dom.horizontalPriceGridContainer.innerHTML = '<p class="text-gray-500">無水平價盤資料。</p>';
         return;
     }
-    // ▼▼▼ 【修改處】將表格 class 從 `min-w-full divide-y ...` 改為 `price-grid-table` ▼▼▼
-    let tableHtml = '<table class="price-grid-table">';
-    // ▲▲▲ 【修改結束】 ▲▲▲
+    let tableHtml = '<table class="min-w-full divide-y divide-gray-800 border-collapse">';
     let headerHtml = '<thead><tr><th class="sticky left-0 bg-dark-card z-10 p-2">樓層 \\ 戶別</th>';
     units.forEach(unit => { headerHtml += `<th class="text-center p-2" style="background-color:${colorMap[unit] || '#4b5563'}80;">${unit}</th>`; });
     headerHtml += '</tr></thead>';
@@ -198,22 +187,16 @@ function renderHorizontalPriceGrid(grid, floors, units, colorMap) {
                 if (hasStorefront) bgColor = 'rgba(107, 33, 168, 0.2)';
                 if (hasOffice) bgColor = 'rgba(21, 128, 61, 0.3)';
 
-                // ▼▼▼ 【修改處】將單價和日期放在獨立的 div 中，並移除 inline-style ▼▼▼
                 let cellContent = cellData.map(tx => {
                     const parkingIcon = tx.hasParking ? ` <i class="fas fa-parking parking-icon" title="含車位"></i>` : '';
                     const storefrontIcon = tx.isStorefront ? `<i class="fas fa-store" title="店舖類型"></i> ` : '';
                     const officeIcon = tx.isOffice ? `<i class="fas fa-briefcase" title="辦公用途"></i> ` : '';
                     const tooltipText = `交易總價: ${ui.formatNumber(tx.tooltipInfo.totalPrice, 0)} 萬\n房屋總價: ${ui.formatNumber(tx.tooltipInfo.housePrice, 0)} 萬\n車位總價: ${ui.formatNumber(tx.tooltipInfo.parkingPrice, 0)} 萬\n房屋面積: ${ui.formatNumber(tx.tooltipInfo.houseArea, 2)} 坪\n房間數: ${tx.tooltipInfo.rooms || '-'} 房`;
-                    return `<div class="has-tooltip" data-tooltip="${tooltipText}">
-                                <div class="font-semibold">${storefrontIcon}${officeIcon}${ui.formatNumber(tx.unitPrice, 1)}萬${parkingIcon}</div>
-                                <div class="text-xs text-gray-400">(${tx.transactionDate})</div>
-                            </div>`;
+                    return `<div class="has-tooltip py-1" data-tooltip="${tooltipText}"><span>${storefrontIcon}${officeIcon}${ui.formatNumber(tx.unitPrice, 1)}萬</span>${parkingIcon}<br><span class="text-xs text-gray-400">(${tx.transactionDate})</span></div>`;
                 }).join('');
-                // ▼▼▼ 【修改處】移除多餘的標籤，並將 padding 等樣式移至 CSS class ▼▼▼
-                bodyHtml += `<td><div class="flex flex-col gap-1">${cellContent}</div></td>`;
-                // ▲▲▲ 【修改結束】 ▲▲▲
+                bodyHtml += `<td style="background-color: ${bgColor}; vertical-align: top; padding: 4px 8px; border-left: 1px solid #374151;"><div class="grid-cell-content">${cellContent}</div></td>`;
             } else {
-                bodyHtml += `<td style="background-color: #1a1d29;">-</td>`;
+                bodyHtml += `<td class="bg-dark-card/50" style="border-left: 1px solid #374151;">-</td>`;
             }
         });
         bodyHtml += `</tr>`;
