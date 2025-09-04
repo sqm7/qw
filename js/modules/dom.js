@@ -47,9 +47,9 @@ export const dom = {
     rankingReportContent: document.getElementById('ranking-report-content'),
     metricCardsContainer: document.getElementById('metric-cards-container'),
     rankingTable: document.getElementById('ranking-table'),
-    rankingPaginationControls: document.createElement('div'), // This was created dynamically in original code
+    rankingPaginationControls: document.createElement('div'),
     rankingChartContainer: document.getElementById('ranking-chart-container'),
-    excludeCommercialToggle: document.getElementById('exclude-commercial-toggle'), // 【新增此行】
+    excludeCommercialToggle: document.getElementById('exclude-commercial-toggle'),
 
     // 報表 - 總價帶
     priceBandReportContent: document.getElementById('price-band-report-content'),
