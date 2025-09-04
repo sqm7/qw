@@ -1,30 +1,26 @@
-// js/modules/eventHandlers.js (修正版)
+// js/modules/eventHandlers.js
 
 import { state, getFilters } from './state.js';
 import { dom } from './dom.js';
 import * as api from './api.js';
 import * as ui from './ui.js';
 import { districtData, countyCodeMap } from './config.js';
-
-// 引入所有渲染模組
 import * as reportRenderer from './renderers/reports.js';
 import * as tableRenderer from './renderers/tables.js';
 import * as chartRenderer from './renderers/charts.js';
 import * as heatmapRenderer from './renderers/heatmap.js';
 import * as componentRenderer from './renderers/uiComponents.js';
 
-// Main data fetching and analysis functions
 export async function mainFetchData() {
     ui.showLoading('查詢中，請稍候...');
     try {
         const filters = getFilters();
         const pagination = { page: state.currentPage, limit: state.pageSize };
         const result = await api.fetchData(filters, pagination);
-        
         state.totalRecords = result.count || 0;
         if (!result.data || result.data.length === 0) {
             ui.showMessage('找不到符合條件的資料。');
-            tableRenderer.renderTable([]); // 清空表格
+            tableRenderer.renderTable([]);
             componentRenderer.renderPagination();
             return;
         }
@@ -37,7 +33,7 @@ export async function mainFetchData() {
         console.error('查詢錯誤:', error);
         ui.showMessage(`查詢錯誤: ${error.message}`, true);
         state.totalRecords = 0;
-        tableRenderer.renderTable([]); // 清空表格
+        tableRenderer.renderTable([]);
         componentRenderer.renderPagination();
     }
 }
@@ -47,11 +43,9 @@ export async function mainAnalyzeData() {
     ui.showLoading('分析中，請稍候...');
     try {
         state.analysisDataCache = await api.analyzeData(getFilters());
-
         if (!state.analysisDataCache.coreMetrics || state.analysisDataCache.projectRanking.length === 0) {
             const msg = state.analysisDataCache.message || '找不到符合條件的分析資料。';
             ui.showMessage(msg);
-            // 確保即使沒有數據，報告區塊也能被清空或隱藏
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             dom.tabsContainer.classList.add('hidden');
             return;
@@ -114,11 +108,8 @@ export async function mainFetchProjectNameSuggestions(query) {
     }
 }
 
-// 【新增此函式】
 export function handleExcludeCommercialToggle() {
     state.excludeCommercial = dom.excludeCommercialToggle.checked;
-    
-    // 如果已有分析資料，重新觸發分析以應用新的篩選條件
     if (state.analysisDataCache) {
         mainAnalyzeData();
     }
@@ -149,10 +140,7 @@ export function updateDistrictOptions() {
     if (selectedCounty && districtData[selectedCounty]) {
         const districtNames = districtData[selectedCounty];
         const selectAllHtml = `<label class="suggestion-item font-bold text-cyan-400" data-name="all"><input type="checkbox" id="district-select-all"><span class="flex-grow">全選/全不選</span></label><hr class="border-gray-600 mx-2">`;
-        const districtsHtml = districtNames.map(name => {
-            const isChecked = state.selectedDistricts.includes(name);
-            return `<label class="suggestion-item" data-name="${name}"><input type="checkbox" ${isChecked ? 'checked' : ''}><span class="flex-grow">${name}</span></label>`
-        }).join('');
+        const districtsHtml = districtNames.map(name => `<label class="suggestion-item" data-name="${name}"><input type="checkbox"><span class="flex-grow">${name}</span></label>`).join('');
         dom.districtSuggestions.innerHTML = selectAllHtml + districtsHtml;
         dom.districtContainer.classList.remove('disabled');
         dom.districtInputArea.textContent = "點擊選擇行政區";
@@ -184,7 +172,6 @@ export function onDistrictContainerClick(e) {
     const isHidden = dom.districtSuggestions.classList.toggle('hidden');
     dom.filterCard.classList.toggle('z-elevate-filters', !isHidden);
 }
-
 
 export function onDistrictSuggestionClick(e) {
     const target = e.target.closest('.suggestion-item'); if (!target) return;
@@ -261,15 +248,10 @@ export function clearSelectedProjects() {
     suggestionCheckboxes.forEach(cb => cb.checked = false);
 }
 
-// 【修正此函式】
 export function toggleAnalyzeButtonState() {
     const isCountySelected = !!dom.countySelect.value;
     const isValidType = dom.typeSelect.value === '預售交易';
-
-    // 將查詢按鈕的邏輯也加進來
     dom.searchBtn.disabled = !isCountySelected;
-    
-    // 分析按鈕的邏輯
     dom.analyzeBtn.disabled = !(isCountySelected && isValidType);
     dom.analyzeHeatmapBtn.disabled = !(isCountySelected && isValidType);
 }
@@ -287,9 +269,7 @@ export function handlePriceBandRoomFilterClick(e) {
     if (!button) return;
     const roomType = button.dataset.roomType;
     if (!roomType) return;
-
     button.classList.toggle('active');
-    
     if (button.classList.contains('active')) {
         if (!state.selectedPriceBandRoomTypes.includes(roomType)) {
             state.selectedPriceBandRoomTypes.push(roomType);
@@ -297,7 +277,6 @@ export function handlePriceBandRoomFilterClick(e) {
     } else {
         state.selectedPriceBandRoomTypes = state.selectedPriceBandRoomTypes.filter(r => r !== roomType);
     }
-    
     reportRenderer.renderPriceBandReport();
 }
 
@@ -331,13 +310,10 @@ export function handleVelocitySubTabClick(e) {
 export function handleHeatmapMetricToggle(e) {
     const button = e.target.closest('.avg-type-btn');
     if (!button || button.classList.contains('active')) return;
-
     const metricType = button.dataset.type;
     state.currentHeatmapDetailMetric = metricType;
-
     dom.heatmapMetricToggle.querySelector('.active').classList.remove('active');
     button.classList.add('active');
-
     if (state.lastHeatmapDetails) {
         tableRenderer.renderHeatmapDetailsTable();
     }
@@ -346,19 +322,15 @@ export function handleHeatmapMetricToggle(e) {
 export function handlePriceGridProjectFilterClick(e) {
     const button = e.target.closest('.capsule-btn');
     if (!button) return;
-    
     if (button.classList.contains('active')) {
         return;
     }
-    
     state.selectedPriceGridProject = button.dataset.project;
     syncMainProjectFilter(state.selectedPriceGridProject);
-
     if (dom.priceGridProjectFilterContainer.querySelector('.active')) {
         dom.priceGridProjectFilterContainer.querySelector('.active').classList.remove('active');
     }
     button.classList.add('active');
-    
     state.isHeatmapActive = false;
     dom.analyzeHeatmapBtn.innerHTML = `<i class="fas fa-fire mr-2"></i>開始分析`;
     dom.backToGridBtn.classList.add('hidden');
@@ -395,9 +367,7 @@ export async function analyzeHeatmap() {
                  throw new Error("無法獲取基礎分析資料，請先執行標準分析。");
              }
         }
-        
         heatmapRenderer.renderPriceGapHeatmap(); 
-        
         dom.heatmapInfoContainer.classList.remove('hidden');
         btn.innerHTML = `<i class="fas fa-sync-alt mr-2"></i>重新分析`;
         dom.backToGridBtn.classList.remove('hidden');
@@ -452,9 +422,7 @@ export async function handleShareClick(reportType) {
         } else {
             payload.date_config = { type: 'relative', value: dateRangeValue };
         }
-
         const result = await api.generateShareLink(payload);
-        
         dom.shareUrlInput.value = result.publicUrl;
         dom.shareModal.classList.remove('hidden');
         dom.copyFeedback.classList.add('hidden');
