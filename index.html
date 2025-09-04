@@ -131,6 +131,25 @@
         <div id="ranking-report-content" class="tab-content">
            <div id="metric-cards-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8"></div>
            <div id="ranking-chart-container" class="mb-8"></div>
+            <div id="ranking-chart-container" class="mb-8"></div>
+
+<div id="ranking-options-container" class="report-header flex justify-end items-center mb-4">
+    <div id="ranking-unit-type-toggle" class="inline-flex items-center space-x-3">
+        <span class="text-sm font-medium text-gray-400">單價計算範圍:</span>
+        <label for="exclude-non-residential-toggle" class="flex items-center cursor-pointer">
+            <span class="mr-3 text-sm font-medium text-gray-300">包含店面/事務所</span>
+            <div class="relative">
+                <input type="checkbox" id="exclude-non-residential-toggle" class="sr-only">
+                <div class="block bg-gray-600 w-14 h-8 rounded-full"></div>
+                <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition"></div>
+            </div>
+            <span class="ml-3 text-sm font-medium text-gray-300">僅計算住宅</span>
+        </label>
+    </div>
+</div>
+<div class="overflow-x-auto">
+    <table id="ranking-table" class="min-w-full divide-y divide-gray-800"></table>
+</div>
            <div class="overflow-x-auto">
                 <table id="ranking-table" class="min-w-full divide-y divide-gray-800"></table>
             </div>
