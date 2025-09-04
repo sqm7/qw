@@ -109,16 +109,13 @@ export async function mainFetchProjectNameSuggestions(query) {
     }
 }
 
-// ▼▼▼ 【新增處】 ▼▼▼
 export function handleExcludeCommercialToggle() {
     state.excludeCommercial = dom.excludeCommercialToggle.checked;
     
-    // 如果已有分析資料，重新觸發分析以應用新的篩選條件
     if (state.analysisDataCache) {
         mainAnalyzeData();
     }
 }
-// ▲▲▲ 【新增結束】 ▲▲▲
 
 export function handleDateRangeChange() {
     const value = dom.dateRangeSelect.value;
@@ -260,6 +257,11 @@ export function clearSelectedProjects() {
 export function toggleAnalyzeButtonState() {
     const isCountySelected = !!dom.countySelect.value;
     const isValidType = dom.typeSelect.value === '預售交易';
+    
+    // 查詢按鈕的啟用邏輯
+    dom.searchBtn.disabled = !isCountySelected;
+
+    // 分析相關按鈕的啟用邏輯
     dom.analyzeBtn.disabled = !(isCountySelected && isValidType);
     dom.analyzeHeatmapBtn.disabled = !(isCountySelected && isValidType);
 }
@@ -280,7 +282,6 @@ export function handlePriceBandRoomFilterClick(e) {
 
     button.classList.toggle('active');
     
-    // 更新 state
     if (button.classList.contains('active')) {
         if (!state.selectedPriceBandRoomTypes.includes(roomType)) {
             state.selectedPriceBandRoomTypes.push(roomType);
@@ -289,8 +290,6 @@ export function handlePriceBandRoomFilterClick(e) {
         state.selectedPriceBandRoomTypes = state.selectedPriceBandRoomTypes.filter(r => r !== roomType);
     }
     
-    // 【核心修改】呼叫主渲染函式來更新整個區塊 (表格 + 圖表)
-    // 這會使其行為與 '房型去化分析' 的篩選器一致
     reportRenderer.renderPriceBandReport();
 }
 
@@ -331,7 +330,6 @@ export function handleHeatmapMetricToggle(e) {
     dom.heatmapMetricToggle.querySelector('.active').classList.remove('active');
     button.classList.add('active');
 
-    // 重新渲染表格
     if (state.lastHeatmapDetails) {
         tableRenderer.renderHeatmapDetailsTable();
     }
