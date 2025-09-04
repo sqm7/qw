@@ -31,7 +31,7 @@ import {
     handleLegendClick,
     handleShareClick,
     copyShareUrl,
-    handleExcludeCommercialToggle // 引入事件處理函式
+    handleExcludeCommercialToggle // 【第1步：確保這裡有匯入新函式】
 } from './modules/eventHandlers.js';
 import { state } from './modules/state.js';
 
@@ -91,7 +91,10 @@ function initialize() {
     // --- 主要按鈕與篩選器事件 ---
     dom.searchBtn.addEventListener('click', () => { state.currentPage = 1; mainFetchData(); });
     dom.analyzeBtn.addEventListener('click', mainAnalyzeData);
-    dom.excludeCommercialToggle.addEventListener('click', handleExcludeCommercialToggle); // 為新開關綁定事件
+    
+    // 【第2步：在這裡加上一行事件綁定】
+    dom.excludeCommercialToggle.addEventListener('click', handleExcludeCommercialToggle);
+
     dom.countySelect.addEventListener('change', updateDistrictOptions);
     dom.typeSelect.addEventListener('change', toggleAnalyzeButtonState);
     
