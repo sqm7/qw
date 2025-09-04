@@ -52,24 +52,6 @@ thead th { background-color: var(--color-dark-card); position: sticky; top: 0; z
 .tab-button.active { color: var(--color-cyan-accent); border-bottom-color: var(--color-cyan-accent); }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
-
-/* ▼▼▼【 新增/修改的樣式 】▼▼▼ */
-/* 這是 reports.js 中新建的容器，用來包裹多個卡片 */
-.stats-cards-container {
-    display: flex;
-    gap: 1.5rem; /* 卡片間距 */
-    flex-wrap: wrap; /* 響應式換行 */
-    margin-bottom: 1.5rem; /* 與下方內容的間距 */
-}
-
-/* 讓容器內的卡片（原本的 .stat-card 和 .metric-card 都適用）自動伸展 */
-.stats-cards-container > .stat-card,
-.stats-cards-container > .metric-card {
-    flex: 1; /* 自動分配寬度 */
-    min-width: 320px; /* 最小寬度，防止過度壓縮 */
-}
-/* ▲▲▲【 新增/修改的樣式結束 】▲▲▲ */
-
 .metric-card { background-color: var(--color-form-bg); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid var(--color-disabled-bg); }
 .metric-card-title { font-size: 0.875rem; color: var(--color-text-dark); margin-bottom: 0.5rem; }
 .metric-card-value { font-size: 2rem; font-weight: 700; color: var(--color-text-light); }
@@ -271,4 +253,16 @@ thead th { background-color: var(--color-dark-card); position: sticky; top: 0; z
 
 .report-section-title.text-center {
     text-align: center;
+}
+
+/* ▼▼▼ 【 這裡是我新增的樣式 】 ▼▼▼ */
+.stats-cards-container {
+    display: flex;
+    flex-wrap: wrap; /* 在空間不足時換行 */
+    gap: 1.5rem; /* 控制卡片之間的間距，1.5rem 對應 Tailwind 的 gap-6 */
+}
+
+.stats-cards-container > .glass-card-deep {
+    flex: 1; /* 讓卡片平均分配寬度 */
+    min-width: 320px; /* 設定一個最小寬度，防止卡片被過度擠壓 */
 }
