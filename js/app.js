@@ -1,4 +1,4 @@
-// js/app.js (最終修正版，適配所有拆分後的模組)
+// js/app.js
 
 import { districtData } from './modules/config.js';
 import * as api from './modules/api.js';
@@ -31,15 +31,12 @@ import {
     handleLegendClick,
     handleShareClick,
     copyShareUrl,
-    handleExcludeCommercialToggle // 【第1步：確保匯入新函式】
+    handleExcludeCommercialToggle
 } from './modules/eventHandlers.js';
 import { state } from './modules/state.js';
-
-// 引入拆分後的渲染模組
 import * as reportRenderer from './modules/renderers/reports.js';
 import * as chartRenderer from './modules/renderers/charts.js';
 
-{/* */}
 async function setupUserStatus() {
     try {
         const user = await api.getUser();
@@ -62,16 +59,16 @@ async function setupUserStatus() {
         console.error('無法設定使用者狀態:', error);
     }
 }
-{/* */}
 
-function initialize() {
+function initializeApp() {
+    window.dom = dom;
+    window.state = state;
+
     api.checkAuth().catch(err => {
         console.error("認證檢查失敗:", err);
     });
 
-    {/* */}
-    setupUserStatus(); // 呼叫新的函式來設定右上角的 UI
-    {/* */}
+    setupUserStatus();
 
     try {
         const countyNames = Object.keys(districtData);
@@ -88,30 +85,22 @@ function initialize() {
     dom.rankingPaginationControls.className = 'flex justify-between items-center mt-4 text-sm text-gray-400';
     dom.rankingReportContent.querySelector('.overflow-x-auto').insertAdjacentElement('afterend', dom.rankingPaginationControls);
 
-    // --- 主要按鈕與篩選器事件 ---
+    // --- Event Listeners ---
     dom.searchBtn.addEventListener('click', () => { state.currentPage = 1; mainFetchData(); });
     dom.analyzeBtn.addEventListener('click', mainAnalyzeData);
-    
-    // 【第2步：在此處加上一行事件綁定】
     dom.excludeCommercialToggle.addEventListener('click', handleExcludeCommercialToggle);
-
     dom.countySelect.addEventListener('change', updateDistrictOptions);
     dom.typeSelect.addEventListener('change', toggleAnalyzeButtonState);
-    
-    // --- 日期相關事件 ---
     dom.dateRangeSelect.addEventListener('change', handleDateRangeChange);
-    dom.dateStartInput.addEventListener('input', () => { if (document.activeElement === dom.dateStartInput) dom.dateRangeSelect.value = 'custom'; });
-    dom.dateEndInput.addEventListener('input', () => { if (document.activeElement === dom.dateEndInput) dom.dateRangeSelect.value = 'custom'; });
     dom.setTodayBtn.addEventListener('click', () => {
         dom.dateEndInput.value = ui.formatDate(new Date());
         dom.dateRangeSelect.value = 'custom';
     });
-
-    // --- 行政區與建案名稱篩選器 (使用事件委派) ---
+    dom.dateStartInput.addEventListener('input', () => { if (document.activeElement === dom.dateStartInput) dom.dateRangeSelect.value = 'custom'; });
+    dom.dateEndInput.addEventListener('input', () => { if (document.activeElement === dom.dateEndInput) dom.dateRangeSelect.value = 'custom'; });
     dom.districtContainer.addEventListener('click', onDistrictContainerClick);
     dom.districtSuggestions.addEventListener('click', onDistrictSuggestionClick);
     dom.clearDistrictsBtn.addEventListener('click', clearSelectedDistricts);
-
     dom.projectNameInput.addEventListener('focus', onProjectInputFocus);
     dom.projectNameInput.addEventListener('input', onProjectInput);
     dom.projectNameSuggestions.addEventListener('click', onSuggestionClick);
@@ -119,16 +108,12 @@ function initialize() {
         if (e.target.classList.contains('multi-tag-remove')) removeProject(e.target.dataset.name); 
     });
     dom.clearProjectsBtn.addEventListener('click', clearSelectedProjects);
-    
-    // --- 彈出視窗與全域點擊事件 ---
     dom.modalCloseBtn.addEventListener('click', () => dom.modal.classList.add('hidden'));
     dom.resultsTable.addEventListener('click', e => { 
         const detailsBtn = e.target.closest('.details-btn');
         if (detailsBtn) mainShowSubTableDetails(detailsBtn); 
     });
     document.addEventListener('click', handleGlobalClick);
-
-    // --- 報告頁籤與互動元件事件 ---
     dom.tabsContainer.addEventListener('click', (e) => {
         if (e.target.matches('.tab-button')) {
             const tabId = e.target.dataset.tab;
@@ -155,8 +140,6 @@ function initialize() {
     dom.avgTypeToggle.addEventListener('click', (e) => { 
         if (e.target.matches('.avg-type-btn')) switchAverageType(e.target.dataset.type); 
     });
-    
-    // --- 去化分析與垂直水平分析相關事件 ---
     dom.priceBandRoomFilterContainer.addEventListener('click', handlePriceBandRoomFilterClick);
     dom.velocityRoomFilterContainer.addEventListener('click', handleVelocityRoomFilterClick);
     dom.velocitySubTabsContainer.addEventListener('click', handleVelocitySubTabClick);
@@ -164,10 +147,7 @@ function initialize() {
     dom.analyzeHeatmapBtn.addEventListener('click', analyzeHeatmap);
     dom.backToGridBtn.addEventListener('click', handleBackToGrid);
     dom.heatmapLegendContainer.addEventListener('click', handleLegendClick);
-    
     dom.heatmapMetricToggle.addEventListener('click', handleHeatmapMetricToggle);
-
-    // 熱力圖面積級距控制
     dom.heatmapIntervalInput.addEventListener('change', chartRenderer.renderAreaHeatmap);
     dom.heatmapMinAreaInput.addEventListener('change', chartRenderer.renderAreaHeatmap);
     dom.heatmapMaxAreaInput.addEventListener('change', chartRenderer.renderAreaHeatmap);
@@ -189,13 +169,9 @@ function initialize() {
         input.value = newValue;
         chartRenderer.renderAreaHeatmap();
     });
-
-    // --- 分享功能 ---
     dom.sharePriceGridBtn.addEventListener('click', () => handleShareClick('price_grid'));
     dom.shareModalCloseBtn.addEventListener('click', () => dom.shareModal.classList.add('hidden'));
     dom.copyShareUrlBtn.addEventListener('click', copyShareUrl);
-
-    // --- 處理分頁變更的自訂事件 ---
     document.addEventListener('pageChange', (e) => {
         if (e.detail.type === 'main') {
             mainFetchData();
@@ -204,10 +180,10 @@ function initialize() {
         }
     });
 
-    // --- 初始化應用狀態 ---
+    // --- Initialize App State ---
     handleDateRangeChange();
     toggleAnalyzeButtonState();
     updateDistrictOptions();
 }
 
-initialize();
+document.addEventListener('DOMContentLoaded', initializeApp);
