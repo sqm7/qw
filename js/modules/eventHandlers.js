@@ -109,6 +109,17 @@ export async function mainFetchProjectNameSuggestions(query) {
     }
 }
 
+// ▼▼▼ 【新增處】 ▼▼▼
+export function handleExcludeCommercialToggle() {
+    state.excludeCommercial = dom.excludeCommercialToggle.checked;
+    
+    // 如果已有分析資料，重新觸發分析以應用新的篩選條件
+    if (state.analysisDataCache) {
+        mainAnalyzeData();
+    }
+}
+// ▲▲▲ 【新增結束】 ▲▲▲
+
 export function handleDateRangeChange() {
     const value = dom.dateRangeSelect.value;
     if (value === 'custom') return;
@@ -184,7 +195,7 @@ export function onDistrictSuggestionClick(e) {
             dom.districtSuggestions.querySelectorAll('label:not([data-name="all"]) input[type="checkbox"]').forEach(cb => { cb.checked = isChecked; });
         } else {
             if (isChecked) {
-              if (!state.selectedDistricts.includes(name)) state.selectedDistricts.push(name);
+                if (!state.selectedDistricts.includes(name)) state.selectedDistricts.push(name);
             } else {
                 state.selectedDistricts = state.selectedDistricts.filter(d => d !== name);
             }
@@ -261,7 +272,6 @@ export function switchAverageType(type) {
     if (state.analysisDataCache) { reportRenderer.renderUnitPriceReport(); }
 }
 
-// ▼▼▼ 【修改處】 ▼▼▼
 export function handlePriceBandRoomFilterClick(e) {
     const button = e.target.closest('.capsule-btn');
     if (!button) return;
@@ -283,7 +293,6 @@ export function handlePriceBandRoomFilterClick(e) {
     // 這會使其行為與 '房型去化分析' 的篩選器一致
     reportRenderer.renderPriceBandReport();
 }
-// ▲▲▲ 【修改結束】 ▲▲▲
 
 export function handleVelocityRoomFilterClick(e) {
     const button = e.target.closest('.capsule-btn'); if (!button) return;
@@ -312,7 +321,6 @@ export function handleVelocitySubTabClick(e) {
     chartRenderer.renderAreaHeatmap();
 }
 
-// ▼▼▼ 【新增處】處理熱力圖詳細數據的統計類型切換 ▼▼▼
 export function handleHeatmapMetricToggle(e) {
     const button = e.target.closest('.avg-type-btn');
     if (!button || button.classList.contains('active')) return;
@@ -328,14 +336,13 @@ export function handleHeatmapMetricToggle(e) {
         tableRenderer.renderHeatmapDetailsTable();
     }
 }
-// ▲▲▲ 【新增結束】 ▲▲▲
 
 export function handlePriceGridProjectFilterClick(e) {
     const button = e.target.closest('.capsule-btn');
     if (!button) return;
     
     if (button.classList.contains('active')) {
-         return;
+        return;
     }
     
     state.selectedPriceGridProject = button.dataset.project;
