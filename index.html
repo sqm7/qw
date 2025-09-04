@@ -131,6 +131,16 @@
         <div id="ranking-report-content" class="tab-content">
            <div id="metric-cards-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8"></div>
            <div id="ranking-chart-container" class="mb-8"></div>
+           
+           <div class="flex justify-end items-center mb-4">
+               <div class="flex items-center">
+                   <label for="exclude-commercial-toggle" class="text-sm font-medium text-gray-300 mr-3">排除店面/事務所:</label>
+                   <label class="relative inline-flex items-center cursor-pointer">
+                       <input type="checkbox" id="exclude-commercial-toggle" class="sr-only peer">
+                       <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-accent"></div>
+                   </label>
+               </div>
+           </div>
            <div class="overflow-x-auto">
                 <table id="ranking-table" class="min-w-full divide-y divide-gray-800"></table>
             </div>
