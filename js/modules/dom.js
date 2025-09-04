@@ -24,6 +24,7 @@ export const dom = {
   metricCardsContainer: document.getElementById('metric-cards-container'),
   rankingTable: document.getElementById('ranking-table'),
   rankingChartContainer: document.getElementById('ranking-chart-container'), // 新增
+  excludeCommercialToggle: document.getElementById('exclude-commercial-toggle'), // 【新增此行】
   rankingPaginationControls: document.createElement('div'),
   priceBandReportContent: document.getElementById('price-band-report-content'),
   priceBandTable: document.getElementById('price-band-table'),
