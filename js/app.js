@@ -31,7 +31,7 @@ import {
     handleLegendClick,
     handleShareClick,
     copyShareUrl,
-    handleExcludeCommercialToggle // 【新增此行】
+    handleExcludeCommercialToggle // 引入事件處理函式
 } from './modules/eventHandlers.js';
 import { state } from './modules/state.js';
 
@@ -91,10 +91,7 @@ function initialize() {
     // --- 主要按鈕與篩選器事件 ---
     dom.searchBtn.addEventListener('click', () => { state.currentPage = 1; mainFetchData(); });
     dom.analyzeBtn.addEventListener('click', mainAnalyzeData);
-    
-    // 【新增此行】
-    dom.excludeCommercialToggle.addEventListener('click', handleExcludeCommercialToggle);
-
+    dom.excludeCommercialToggle.addEventListener('click', handleExcludeCommercialToggle); // 為新開關綁定事件
     dom.countySelect.addEventListener('change', updateDistrictOptions);
     dom.typeSelect.addEventListener('change', toggleAnalyzeButtonState);
     
@@ -165,9 +162,7 @@ function initialize() {
     dom.backToGridBtn.addEventListener('click', handleBackToGrid);
     dom.heatmapLegendContainer.addEventListener('click', handleLegendClick);
     
-    // ▼▼▼ 【新增處】綁定新的事件監聽器 ▼▼▼
     dom.heatmapMetricToggle.addEventListener('click', handleHeatmapMetricToggle);
-    // ▲▲▲ 【新增結束】 ▲▲▲
 
     // 熱力圖面積級距控制
     dom.heatmapIntervalInput.addEventListener('change', chartRenderer.renderAreaHeatmap);
