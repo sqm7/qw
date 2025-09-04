@@ -24,13 +24,14 @@ import {
     handlePriceBandRoomFilterClick,
     handleVelocityRoomFilterClick,
     handleVelocitySubTabClick,
-    handleHeatmapMetricToggle, // 引入新的事件處理函式
+    handleHeatmapMetricToggle,
     handlePriceGridProjectFilterClick,
     analyzeHeatmap,
     handleBackToGrid,
     handleLegendClick,
     handleShareClick,
-    copyShareUrl
+    copyShareUrl,
+    handleExcludeCommercialToggle // 【新增此行】
 } from './modules/eventHandlers.js';
 import { state } from './modules/state.js';
 
@@ -90,6 +91,10 @@ function initialize() {
     // --- 主要按鈕與篩選器事件 ---
     dom.searchBtn.addEventListener('click', () => { state.currentPage = 1; mainFetchData(); });
     dom.analyzeBtn.addEventListener('click', mainAnalyzeData);
+    
+    // 【新增此行】
+    dom.excludeCommercialToggle.addEventListener('click', handleExcludeCommercialToggle);
+
     dom.countySelect.addEventListener('change', updateDistrictOptions);
     dom.typeSelect.addEventListener('change', toggleAnalyzeButtonState);
     
