@@ -17,12 +17,14 @@ export const dom = {
     districtContainer: document.getElementById('district-container'),
     districtInputArea: document.getElementById('district-input-area'),
     districtSuggestions: document.getElementById('district-suggestions'),
+    clearDistrictsBtn: document.getElementById('clear-districts-btn'),
 
     // 建案名稱篩選器
     projectFilterWrapper: document.getElementById('project-filter-wrapper'),
     projectNameContainer: document.getElementById('project-name-container'),
     projectNameInput: document.getElementById('project-name-input'),
     projectNameSuggestions: document.getElementById('project-name-suggestions'),
+    clearProjectsBtn: document.getElementById('clear-projects-btn'),
 
     // 按鈕
     searchBtn: document.getElementById('search-btn'),
@@ -45,8 +47,7 @@ export const dom = {
     rankingReportContent: document.getElementById('ranking-report-content'),
     metricCardsContainer: document.getElementById('metric-cards-container'),
     rankingTable: document.getElementById('ranking-table'),
-    rankingTableBody: document.querySelector('#ranking-table tbody'),
-    rankingPagination: document.getElementById('ranking-pagination'),
+    rankingPaginationControls: document.createElement('div'), // This was created dynamically in original code
     rankingChartContainer: document.getElementById('ranking-chart-container'),
     excludeCommercialToggle: document.getElementById('exclude-commercial-toggle'), // 【新增此行】
 
@@ -81,6 +82,11 @@ export const dom = {
     salesVelocityChart: document.getElementById('sales-velocity-chart'),
     velocityTableContainer: document.getElementById('velocity-table-container'),
     areaHeatmapChart: document.getElementById('area-heatmap-chart'),
+    heatmapMinAreaInput: document.getElementById('heatmap-min-area-input'),
+    heatmapMaxAreaInput: document.getElementById('heatmap-max-area-input'),
+    heatmapIntervalInput: document.getElementById('heatmap-interval-input'),
+    heatmapIntervalIncrementBtn: document.getElementById('heatmap-interval-increment'),
+    heatmapIntervalDecrementBtn: document.getElementById('heatmap-interval-decrement'),
     heatmapDetailsContainer: document.getElementById('heatmap-details-container'),
     heatmapDetailsControls: document.getElementById('heatmap-details-controls'),
     heatmapMetricToggle: document.getElementById('heatmap-metric-toggle'),
