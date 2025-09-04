@@ -1,6 +1,6 @@
 // js/modules/state.js
 
-import { dom } from './dom.js'; // 【第1步：在檔案最上方加入這行匯入】
+import { dom } from './dom.js'; // 【修正點 1：在檔案最上方加入這行，這是我之前遺漏的關鍵】
 
 export const state = {
     // Data and Pagination
@@ -23,24 +23,25 @@ export const state = {
     currentAverageType: 'arithmetic',
     
     // Price Band Report State
-    selectedPriceBandRoomTypes: [], // 總價帶分析的房型篩選
+    selectedPriceBandRoomTypes: [],
 
     // Velocity Report State
     selectedVelocityRooms: [],
     currentVelocityView: 'monthly',
-    lastHeatmapDetails: null, // 用於儲存熱力圖點擊的數據
-    currentHeatmapDetailMetric: 'median', // 熱力圖詳細數據的預設統計類型
+    lastHeatmapDetails: null, 
+    currentHeatmapDetailMetric: 'median',
 
     // Price Grid Report State
     selectedPriceGridProject: null,
     isHeatmapActive: false,
     currentLegendFilter: { type: null, value: null },
 
+    // 新增的功能狀態
     excludeCommercial: false,
 };
 
 export function getFilters() {
-    // 【第2步：移除 "window."，直接使用匯入的 dom】
+    // 【修正點 2：直接使用上方匯入的 dom 物件，移除所有 "window."】
     return {
         county: dom.countySelect.value,
         districts: state.selectedDistricts,
