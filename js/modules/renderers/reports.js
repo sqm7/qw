@@ -8,14 +8,6 @@ import { renderVelocityTable } from './tables.js';
 import { renderAreaHeatmap, renderSalesVelocityChart, renderPriceBandChart, renderRankingChart } from './charts.js';
 import { displayCurrentPriceGrid } from './heatmap.js';
 
-/**
- * 輔助函式：為單價分析中的一個區塊（住宅、事務所、店鋪）渲染統計數據。
- * @param {object} stats - 該類別的統計數據物件。
- * @param {string} averageType - 當前選擇的平均數類型 ('arithmetic' or 'weighted')。
- * @param {string} tableContainerId - 表格容器的 DOM ID。
- * @param {string} extraInfoContainerId - 額外資訊容器的 DOM ID。
- * @param {string} noDataMessage - 當沒有數據時顯示的訊息。
- */
 function renderStatsBlock(stats, averageType, tableContainerId, extraInfoContainerId, noDataMessage) {
     const tableContainer = document.getElementById(tableContainerId);
     const extraInfoContainer = document.getElementById(extraInfoContainerId);
@@ -56,7 +48,6 @@ function renderStatsBlock(stats, averageType, tableContainerId, extraInfoContain
         extraInfoContainer.innerHTML = '';
     }
 }
-
 
 export function renderRankingReport() {
     if (!state.analysisDataCache || !state.analysisDataCache.coreMetrics) return;
@@ -145,7 +136,6 @@ export function renderPriceBandReport() {
         return (a.bathrooms || 0) - (b.bathrooms || 0);
     });
     
-    // ▼▼▼ 【BUG 修正處】 ▼▼▼
     const tableHeaders = ['房型', '衛浴', '筆數', '平均總價(萬)', '最低總價(萬)', '1/4位總價(萬)', '中位數總價(萬)', '3/4位總價(萬)', '最高總價(萬)'];
 
     let headerHtml = '<thead><tr>' + tableHeaders.map(h => `<th>${h}</th>`).join('') + '</tr></thead>';
@@ -168,7 +158,6 @@ export function renderPriceBandReport() {
     } else {
         bodyHtml += `<tr><td colspan="${tableHeaders.length}" class="text-center p-4 text-gray-500">請至少選擇一個房型以顯示數據</td></tr>`;
     }
-    // ▲▲▲ 【BUG 修正結束】 ▲▲▲
 
     bodyHtml += '</tbody>';
     dom.priceBandTable.innerHTML = headerHtml + bodyHtml;
@@ -181,35 +170,41 @@ export function renderUnitPriceReport() {
         renderStatsBlock(null, null, 'residential-stats-table-container', 'residential-stats-extra-info', '無住宅交易數據');
         renderStatsBlock(null, null, 'office-stats-table-container', 'office-stats-extra-info', '無事務所/辦公室交易數據');
         renderStatsBlock(null, null, 'store-stats-table-container', 'store-stats-extra-info', '無店鋪交易數據');
+        dom.typeComparisonTableContainer.innerHTML = ''; // Clear comparison table too
         return;
     }
 
-    const { residentialStats, officeStats, storeStats } = state.analysisDataCache.unitPriceAnalysis;
+    const { residentialStats, officeStats, storeStats, typeComparison } = state.analysisDataCache.unitPriceAnalysis;
     
-    renderStatsBlock(
-        residentialStats, 
-        state.currentAverageType, 
-        'residential-stats-table-container', 
-        'residential-stats-extra-info', 
-        '無住宅交易數據'
-    );
-    
-    renderStatsBlock(
-        officeStats, 
-        state.currentAverageType, 
-        'office-stats-table-container', 
-        'office-stats-extra-info', 
-        '無事務所/辦公室交易數據'
-    );
+    // Render the three stats blocks
+    renderStatsBlock(residentialStats, state.currentAverageType, 'residential-stats-table-container', 'residential-stats-extra-info', '無住宅交易數據');
+    renderStatsBlock(officeStats, state.currentAverageType, 'office-stats-table-container', 'office-stats-extra-info', '無事務所/辦公室交易數據');
+    renderStatsBlock(storeStats, state.currentAverageType, 'store-stats-table-container', 'store-stats-extra-info', '無店鋪交易數據');
 
-    renderStatsBlock(
-        storeStats, 
-        state.currentAverageType, 
-        'store-stats-table-container', 
-        'store-stats-extra-info', 
-        '無店鋪交易數據'
-    );
+    // Render the comparison table
+    const comparisonContainer = dom.typeComparisonTableContainer;
+    if (typeComparison && typeComparison.length > 0) {
+        let comparisonHtml = `<table class="min-w-full divide-y divide-gray-800"><thead><tr><th>建案名稱</th><th>住宅均價(萬/坪)</th><th>店舖均價(萬/坪)</th><th>店舖對住宅倍數</th><th>事務所均價(萬/坪)</th><th>事務所對住宅倍數</th></tr></thead><tbody>`;
+        typeComparison.forEach(item => {
+            const residentialAvgToShow = (item.residentialAvg && typeof item.residentialAvg === 'object') ? item.residentialAvg[state.currentAverageType] : 0;
+            const shopAvgToShow = (item.shopAvg && typeof item.shopAvg === 'object') ? item.shopAvg[state.currentAverageType] : 0;
+            const officeAvgToShow = (item.officeAvg && typeof item.officeAvg === 'object') ? item.officeAvg[state.currentAverageType] : 0;
+            comparisonHtml += `<tr class="hover:bg-dark-card">
+                                <td>${item.projectName}</td>
+                                <td>${residentialAvgToShow > 0 ? ui.formatNumber(residentialAvgToShow) : '-'}</td>
+                                <td>${shopAvgToShow > 0 ? ui.formatNumber(shopAvgToShow) : '-'}</td>
+                                <td>${item.shopMultiple > 0 ? ui.formatNumber(item.shopMultiple) + ' 倍' : '-'}</td>
+                                <td>${officeAvgToShow > 0 ? ui.formatNumber(officeAvgToShow) : '-'}</td>
+                                <td>${item.officeMultiple > 0 ? ui.formatNumber(item.officeMultiple) + ' 倍' : '-'}</td>
+                               </tr>`;
+        });
+        comparisonHtml += `</tbody></table>`;
+        comparisonContainer.innerHTML = comparisonHtml;
+    } else {
+        comparisonContainer.innerHTML = '<p class="text-gray-500 text-center p-4">無符合條件的建案可進行類型比較。</p>';
+    }
 }
+
 
 export function renderParkingAnalysisReport() {
     if (!state.analysisDataCache || !state.analysisDataCache.parkingAnalysis) return;
@@ -229,85 +224,4 @@ export function renderParkingAnalysisReport() {
     }
     if (rampPlanePriceByFloor && rampPlanePriceByFloor.some(item => item.count > 0)) {
         const floorMapping = {'B1': '地下一樓', 'B2': '地下二樓', 'B3': '地下三樓', 'B4': '地下四樓', 'B5_below': '地下五樓含以下'};
-        let floorPriceHtml = `<table class="min-w-full divide-y divide-gray-800"><thead><tr><th>樓層</th><th>筆數</th><th>均價(萬)</th><th>中位數(萬)</th><th>3/4位數(萬)</th><th>最高價(萬)</th><th>最低價(萬)</th></tr></thead><tbody>`;
-        rampPlanePriceByFloor.forEach(item => {
-            if (item && item.count > 0) {
-                const maxPriceTooltip = item.maxPriceProject ? `建案: ${item.maxPriceProject}\n戶型: ${item.maxPriceUnit || '-'}\n樓層: ${item.maxPriceFloor || '-'}` : '';
-                const minPriceTooltip = item.minPriceProject ? `建案: ${item.minPriceProject}\n戶型: ${item.minPriceUnit || '-'}\n樓層: ${item.minPriceFloor || '-'}` : '';
-                floorPriceHtml += `<tr class="hover:bg-dark-card"><td>${floorMapping[item.floor] || item.floor}</td><td>${item.count.toLocaleString()}</td><td>${ui.formatNumber(item.avgPrice, 0)}</td><td>${ui.formatNumber(item.medianPrice, 0)}</td><td>${ui.formatNumber(item.q3Price, 0)}</td><td><span class="has-tooltip" data-tooltip="${maxPriceTooltip}">${ui.formatNumber(item.maxPrice, 0)}</span></td><td><span class="has-tooltip" data-tooltip="${minPriceTooltip}">${ui.formatNumber(item.minPrice, 0)}</span></td></tr>`;
-            }
-        });
-        floorPriceHtml += `</tbody></table>`;
-        dom.rampPlanePriceByFloorTableContainer.innerHTML = floorPriceHtml;
-    } else {
-        dom.rampPlanePriceByFloorTableContainer.innerHTML = '<p class="text-gray-500">無符合條件的坡道平面車位交易資料可供分析。</p>';
-    }
-}
-
-export function renderSalesVelocityReport() {
-    if (!state.analysisDataCache || !state.analysisDataCache.salesVelocityAnalysis) return;
-    
-    const { allRoomTypes } = state.analysisDataCache.salesVelocityAnalysis;
-
-    if (allRoomTypes && allRoomTypes.length > 0) {
-        const sortOrder = ['套房', '1房', '2房', '3房', '4房', '5房以上', '毛胚', '店舖', '辦公/事務所', '廠辦/工廠', '其他'];
-        allRoomTypes.sort((a, b) => {
-            const indexA = sortOrder.indexOf(a);
-            const indexB = sortOrder.indexOf(b);
-            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-            if (indexA !== -1) return -1;
-            if (indexB !== -1) return 1;
-            return a.localeCompare(b);
-        });
-
-        const defaultSelections = ['1房', '2房', '3房'];
-        state.selectedVelocityRooms = allRoomTypes.filter(roomType => defaultSelections.includes(roomType));
-        if (state.selectedVelocityRooms.length === 0) {
-             state.selectedVelocityRooms = [...allRoomTypes];
-        }
-
-        dom.velocityRoomFilterContainer.innerHTML = allRoomTypes.map(roomType => {
-            const isActive = state.selectedVelocityRooms.includes(roomType);
-            return `<button class="capsule-btn ${isActive ? 'active' : ''}" data-room-type="${roomType}">${roomType}</button>`;
-        }).join('');
-    } else {
-        dom.velocityRoomFilterContainer.innerHTML = '<p class="text-gray-500 text-sm">無可用房型</p>';
-    }
-    renderVelocityTable();
-    renderSalesVelocityChart();
-    renderAreaHeatmap();
-}
-
-export function renderPriceGridAnalysis() {
-    state.isHeatmapActive = false;
-    dom.analyzeHeatmapBtn.innerHTML = `<i class="fas fa-fire mr-2"></i>開始分析`;
-    dom.backToGridBtn.classList.add('hidden');
-    dom.heatmapInfoContainer.classList.add('hidden');
-    dom.heatmapSummaryTableContainer.classList.add('hidden');
-    dom.heatmapHorizontalComparisonTableContainer.classList.add('hidden');
-
-    const reportContent = dom.priceGridReportContent;
-    if (!state.analysisDataCache || !state.analysisDataCache.priceGridAnalysis || !state.analysisDataCache.priceGridAnalysis.projectNames || state.analysisDataCache.priceGridAnalysis.projectNames.length === 0) {
-        reportContent.querySelector('.my-4.p-4').classList.add('hidden');
-        dom.horizontalPriceGridContainer.innerHTML = '<p class="text-gray-500 p-4 text-center">無垂直水平分析資料。</p>';
-        return;
-    }
-    
-    reportContent.querySelector('.my-4.p-4').classList.remove('hidden');
-    const { projectNames } = state.analysisDataCache.priceGridAnalysis;
-
-    if (projectNames && projectNames.length > 0) {
-        state.selectedPriceGridProject = null;
-        
-        const filterHtml = projectNames.map(name => `<button class="capsule-btn" data-project="${name}">${name}</button>`).join('');
-        dom.priceGridProjectFilterContainer.innerHTML = filterHtml;
-        dom.priceGridProjectFilterContainer.parentElement.classList.remove('hidden');
-        
-        displayCurrentPriceGrid();
-    } else {
-        state.selectedPriceGridProject = null;
-        dom.priceGridProjectFilterContainer.parentElement.classList.add('hidden');
-        dom.unitColorLegendContainer.innerHTML = '';
-        dom.horizontalPriceGridContainer.innerHTML = '<p class="text-gray-500 p-4 text-center">無特定建案資料可供分析。</p>';
-    }
-}
+        let floorPriceHtml = `<table class="min-w-full divide-y divide-gray-800"><thead><tr><th>樓層</th><th>筆
