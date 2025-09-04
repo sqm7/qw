@@ -8,6 +8,55 @@ import { renderVelocityTable } from './tables.js';
 import { renderAreaHeatmap, renderSalesVelocityChart, renderPriceBandChart, renderRankingChart } from './charts.js';
 import { displayCurrentPriceGrid } from './heatmap.js';
 
+/**
+ * 輔助函式：為單價分析中的一個區塊（住宅、事務所、店鋪）渲染統計數據。
+ * @param {object} stats - 該類別的統計數據物件。
+ * @param {string} averageType - 當前選擇的平均數類型 ('arithmetic' or 'weighted')。
+ * @param {string} tableContainerId - 表格容器的 DOM ID。
+ * @param {string} extraInfoContainerId - 額外資訊容器的 DOM ID。
+ * @param {string} noDataMessage - 當沒有數據時顯示的訊息。
+ */
+function renderStatsBlock(stats, averageType, tableContainerId, extraInfoContainerId, noDataMessage) {
+    const tableContainer = document.getElementById(tableContainerId);
+    const extraInfoContainer = document.getElementById(extraInfoContainerId);
+
+    if (!tableContainer || !extraInfoContainer) {
+        console.error(`DOM elements not found for rendering stats: ${tableContainerId}`);
+        return;
+    }
+
+    if (stats && stats.count > 0 && stats.avgPrice) {
+        const avgPriceToShow = stats.avgPrice[averageType];
+        const minPriceTooltip = stats.minPriceProject ? `建案: ${stats.minPriceProject}\n戶型: ${stats.minPriceUnit || '-'}\n樓層: ${stats.minPriceFloor || '-'}` : '';
+        const maxPriceTooltip = stats.maxPriceProject ? `建案: ${stats.maxPriceProject}\n戶型: ${stats.maxPriceUnit || '-'}\n樓層: ${stats.maxPriceFloor || '-'}` : '';
+        
+        tableContainer.innerHTML = `
+            <table class="min-w-full divide-y divide-gray-800">
+                <thead>
+                    <tr>
+                        <th class="w-1/2">統計項目</th>
+                        <th class="w-1/2">房屋單價 (萬/坪)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="hover:bg-dark-card"><td class="font-medium text-gray-300">平均單價</td><td>${ui.formatNumber(avgPriceToShow)}</td></tr>
+                    <tr class="hover:bg-dark-card"><td class="font-medium text-gray-300">最低單價</td><td><span class="has-tooltip" data-tooltip="${minPriceTooltip}">${ui.formatNumber(stats.minPrice)}</span></td></tr>
+                    <tr class="hover:bg-dark-card"><td class="font-medium text-gray-300">1/4分位數單價</td><td>${ui.formatNumber(stats.q1Price)}</td></tr>
+                    <tr class="hover:bg-dark-card"><td class="font-medium text-gray-300">中位數單價</td><td>${ui.formatNumber(stats.medianPrice)}</td></tr>
+                    <tr class="hover:bg-dark-card"><td class="font-medium text-gray-300">3/4分位數單價</td><td>${ui.formatNumber(stats.q3Price)}</td></tr>
+                    <tr class="hover:bg-dark-card"><td class="font-medium text-gray-300">最高單價</td><td><span class="has-tooltip" data-tooltip="${maxPriceTooltip}">${ui.formatNumber(stats.maxPrice)}</span></td></tr>
+                </tbody>
+            </table>`;
+
+        extraInfoContainer.innerHTML = `
+            <p><span class="font-semibold text-cyan-400">最低價建案：</span>${stats.minPriceProject || 'N/A'}</p>
+            <p><span class="font-semibold text-purple-400">最高價建案：</span>${stats.maxPriceProject || 'N/A'}</p>`;
+    } else {
+        tableContainer.innerHTML = `<p class="text-gray-500 text-center p-4">${noDataMessage}</p>`;
+        extraInfoContainer.innerHTML = '';
+    }
+}
+
 
 export function renderRankingReport() {
     if (!state.analysisDataCache || !state.analysisDataCache.coreMetrics) return;
@@ -16,9 +65,7 @@ export function renderRankingReport() {
     
     dom.metricCardsContainer.innerHTML = `<div class="metric-card"><div class="metric-card-title">市場去化總銷售金額</div><div><span class="metric-card-value">${ui.formatNumber(coreMetrics.totalSaleAmount, 0)}</span><span class="metric-card-unit">萬</span></div></div><div class="metric-card"><div class="metric-card-title">總銷去化房屋坪數</div><div><span class="metric-card-value">${ui.formatNumber(coreMetrics.totalHouseArea, 2)}</span><span class="metric-card-unit">坪</span></div></div><div class="metric-card"><div class="metric-card-title">總平均單價</div><div><span class="metric-card-value">${ui.formatNumber(coreMetrics.overallAveragePrice, 2)}</span><span class="metric-card-unit">萬/坪</span></div></div><div class="metric-card"><div class="metric-card-title">總交易筆數</div><div><span class="metric-card-value">${coreMetrics.transactionCount.toLocaleString()}</span><span class="metric-card-unit">筆</span></div></div>`;
     
-    // ▼▼▼ 【新增】呼叫新的圖表渲染函式 ▼▼▼
     renderRankingChart();
-    // ▲▲▲ 【新增結束】 ▲▲▲
 
     projectRanking.sort((a, b) => {
         const valA = a[state.currentSort.key];
@@ -118,33 +165,39 @@ export function renderPriceBandReport() {
 }
 
 export function renderUnitPriceReport() {
-    if (!state.analysisDataCache || !state.analysisDataCache.unitPriceAnalysis) return;
-    const { residentialStats, typeComparison } = state.analysisDataCache.unitPriceAnalysis;
-    const statsContainer = dom.residentialStatsTableContainer;
-    if (residentialStats && residentialStats.avgPrice) {
-        const avgPriceToShow = residentialStats.avgPrice[state.currentAverageType];
-        const minPriceTooltip = residentialStats.minPriceProject ? `建案: ${residentialStats.minPriceProject}\n戶型: ${residentialStats.minPriceUnit || '-'}\n樓層: ${residentialStats.minPriceFloor || '-'}` : '';
-        const maxPriceTooltip = residentialStats.maxPriceProject ? `建案: ${residentialStats.maxPriceProject}\n戶型: ${residentialStats.maxPriceUnit || '-'}\n樓層: ${residentialStats.maxPriceFloor || '-'}` : '';
-        statsContainer.innerHTML = `<table class="min-w-full divide-y divide-gray-800"><thead><tr><th class="w-1/2">統計項目</th><th class="w-1/2">房屋單價 (萬/坪)</th></tr></thead><tbody><tr class="hover:bg-dark-card"><td class="font-medium text-gray-300">平均單價</td><td>${ui.formatNumber(avgPriceToShow)}</td></tr><tr class="hover:bg-dark-card"><td class="font-medium text-gray-300">最低單價</td><td><span class="has-tooltip" data-tooltip="${minPriceTooltip}">${ui.formatNumber(residentialStats.minPrice)}</span></td></tr><tr class="hover:bg-dark-card"><td class="font-medium text-gray-300">1/4分位數單價</td><td>${ui.formatNumber(residentialStats.q1Price)}</td></tr><tr class="hover:bg-dark-card"><td class="font-medium text-gray-300">中位數單價</td><td>${ui.formatNumber(residentialStats.medianPrice)}</td></tr><tr class="hover:bg-dark-card"><td class="font-medium text-gray-300">3/4分位數單價</td><td>${ui.formatNumber(residentialStats.q3Price)}</td></tr><tr class="hover:bg-dark-card"><td class="font-medium text-gray-300">最高單價</td><td><span class="has-tooltip" data-tooltip="${maxPriceTooltip}">${ui.formatNumber(residentialStats.maxPrice)}</span></td></tr></tbody></table>`;
-        dom.residentialStatsExtraInfo.innerHTML = `<p><span class="font-semibold text-cyan-400">最低房屋單價建案：</span>${residentialStats.minPriceProject || 'N/A'}</p><p><span class="font-semibold text-purple-400">最高房屋單價建案：</span>${residentialStats.maxPriceProject || 'N/A'}</p>`;
-    } else {
-        statsContainer.innerHTML = '<p class="text-gray-500">無符合條件的住宅交易資料可供分析。</p>';
-        dom.residentialStatsExtraInfo.innerHTML = '';
+    if (!state.analysisDataCache || !state.analysisDataCache.unitPriceAnalysis) {
+        // Clear all containers if there's no data
+        renderStatsBlock(null, null, 'residential-stats-table-container', 'residential-stats-extra-info', '無住宅交易數據');
+        renderStatsBlock(null, null, 'office-stats-table-container', 'office-stats-extra-info', '無事務所/辦公室交易數據');
+        renderStatsBlock(null, null, 'store-stats-table-container', 'store-stats-extra-info', '無店鋪交易數據');
+        return;
     }
-    const comparisonContainer = dom.typeComparisonTableContainer;
-    if (typeComparison && typeComparison.length > 0) {
-        let comparisonHtml = `<table class="min-w-full divide-y divide-gray-800"><thead><tr><th>建案名稱</th><th>住宅均價(萬/坪)</th><th>店舖均價(萬/坪)</th><th>店舖對住宅倍數</th><th>事務所均價(萬/坪)</th><th>事務所對住宅倍數</th></tr></thead><tbody>`;
-        typeComparison.forEach(item => {
-            const residentialAvgToShow = (item.residentialAvg && typeof item.residentialAvg === 'object') ? item.residentialAvg[state.currentAverageType] : 0;
-            const shopAvgToShow = (item.shopAvg && typeof item.shopAvg === 'object') ? item.shopAvg[state.currentAverageType] : 0;
-            const officeAvgToShow = (item.officeAvg && typeof item.officeAvg === 'object') ? item.officeAvg[state.currentAverageType] : 0;
-            comparisonHtml += `<tr class="hover:bg-dark-card"><td>${item.projectName}</td><td>${residentialAvgToShow > 0 ? ui.formatNumber(residentialAvgToShow) : '-'}</td><td>${shopAvgToShow > 0 ? ui.formatNumber(shopAvgToShow) : '-'}</td><td>${item.shopMultiple > 0 ? ui.formatNumber(item.shopMultiple) + ' 倍' : '-'}</td><td>${officeAvgToShow > 0 ? ui.formatNumber(officeAvgToShow) : '-'}</td><td>${item.officeMultiple > 0 ? ui.formatNumber(item.officeMultiple) + ' 倍' : '-'}</td></tr>`;
-        });
-        comparisonHtml += `</tbody></table>`;
-        comparisonContainer.innerHTML = comparisonHtml;
-    } else {
-        comparisonContainer.innerHTML = '<p class="text-gray-500">無符合條件的建案可進行類型比較。</p>';
-    }
+
+    const { residentialStats, officeStats, storeStats } = state.analysisDataCache.unitPriceAnalysis;
+    
+    renderStatsBlock(
+        residentialStats, 
+        state.currentAverageType, 
+        'residential-stats-table-container', 
+        'residential-stats-extra-info', 
+        '無住宅交易數據'
+    );
+    
+    renderStatsBlock(
+        officeStats, 
+        state.currentAverageType, 
+        'office-stats-table-container', 
+        'office-stats-extra-info', 
+        '無事務所/辦公室交易數據'
+    );
+
+    renderStatsBlock(
+        storeStats, 
+        state.currentAverageType, 
+        'store-stats-table-container', 
+        'store-stats-extra-info', 
+        '無店鋪交易數據'
+    );
 }
 
 export function renderParkingAnalysisReport() {
