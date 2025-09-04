@@ -254,3 +254,47 @@ thead th { background-color: var(--color-dark-card); position: sticky; top: 0; z
 .report-section-title.text-center {
     text-align: center;
 }
+
+/* ▼▼▼ 【修改處】新增 Toggle Switch 樣式 ▼▼▼ */
+.toggle-switch {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-switch .slider {
+    position: relative;
+    display: inline-block;
+    width: 44px; /* 寬度 */
+    height: 24px; /* 高度 */
+    background-color: var(--color-disabled-bg);
+    border-radius: 24px;
+    transition: background-color 0.3s;
+}
+
+.toggle-switch .slider::before {
+    content: "";
+    position: absolute;
+    height: 18px; /* 圓點大小 */
+    width: 18px;
+    left: 3px; /* 初始位置 */
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+}
+
+.toggle-switch input:checked + .slider {
+    background-color: var(--color-cyan-accent); /* 開啟時的顏色 */
+}
+
+.toggle-switch input:checked + .slider::before {
+    transform: translateX(20px); /* 開啟時的位移 */
+}
+/* ▲▲▲ 【修改結束】 ▲▲▲ */
