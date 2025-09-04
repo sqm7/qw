@@ -1,66 +1,55 @@
 // js/modules/state.js
 
-import { dom } from './dom.js';
-import { getCurrentDate, getDateMonthsAgo } from './utils.js';
-
 export const state = {
+    // Data and Pagination
     currentPage: 1,
-    itemsPerPage: 50,
-    totalItems: 0,
-    sortColumn: '交易日期',
-    sortOrder: 'desc',
-    currentData: [],
-    allData: [],
+    pageSize: 50,
+    totalRecords: 0,
+    
+    // Filters
     selectedDistricts: [],
     selectedProjects: [],
+    
+    // UI State
+    suggestionDebounceTimer: null,
+    
+    // Analysis & Reports
     analysisDataCache: null,
-    excludeCommercial: false, // 【新增此行】
     currentSort: { key: 'saleAmountSum', order: 'desc' },
-    currentRankingPage: 1,
-    rankingItemsPerPage: 10,
-    currentPriceBandRoomType: 'all',
-    currentVelocityRoomType: 'all',
+    rankingCurrentPage: 1,
+    rankingPageSize: 10,
+    currentAverageType: 'arithmetic',
+    
+    // Price Band Report State
+    selectedPriceBandRoomTypes: [], // 總價帶分析的房型篩選
+
+    // Velocity Report State
+    selectedVelocityRooms: [],
     currentVelocityView: 'monthly',
-    currentAvgType: 'arithmetic',
-    priceGrid: {
-        currentProject: null,
-        projects: []
-    },
-    heatmap: {
-        currentMetric: 'median'
-    }
+    lastHeatmapDetails: null, // 用於儲存熱力圖點擊的數據
+    currentHeatmapDetailMetric: 'median', // 熱力圖詳細數據的預設統計類型
+
+    // Price Grid Report State
+    selectedPriceGridProject: null,
+    isHeatmapActive: false,
+    currentLegendFilter: { type: null, value: null },
+
+    // ▼▼▼ 【新增處】 ▼▼▼
+    excludeCommercial: false, // 是否排除店面/事務所
+    // ▲▲▲ 【新增結束】 ▲▲▲
 };
 
 export function getFilters() {
-    const filters = {};
-    const county = dom.county.value;
-    const districts = state.selectedDistricts;
-    const type = dom.type.value;
-    const buildingType = dom.buildingType.value;
-    const dateStart = dom.dateStart.value;
-    const dateEnd = dom.dateEnd.value;
-    const floorPremium = parseFloat(dom.floorPremiumInput.value);
-
-    if (county) filters.countyCode = county;
-    if (districts && districts.length > 0) filters.districts = districts;
-    if (type) filters.type = type;
-    if (buildingType) filters.buildingType = buildingType;
-    if (dateStart) filters.dateStart = dateStart;
-    if (dateEnd) filters.dateEnd = dateEnd;
-    if (state.selectedProjects.length > 0) filters.projectNames = state.selectedProjects;
-    if (!isNaN(floorPremium) && floorPremium >= 0) filters.floorPremium = floorPremium;
-    
-    filters.excludeCommercial = state.excludeCommercial; // 【新增此行】
-
-    return filters;
-}
-
-export function updateStateFromFilters() {
-    state.currentPage = 1; 
-}
-
-export function initializeDateRange() {
-    const oneYearAgo = getDateMonthsAgo(12);
-    dom.dateStart.value = oneYearAgo;
-    dom.dateEnd.value = getCurrentDate();
+    const dom = window.dom; // Accessing global dom object
+    return {
+        county: dom.countySelect.value,
+        districts: state.selectedDistricts,
+        type: dom.typeSelect.value,
+        buildingType: dom.buildingTypeSelect.value,
+        dateStart: dom.dateStartInput.value,
+        dateEnd: dom.dateEndInput.value,
+        projectNames: state.selectedProjects,
+        floorPremium: parseFloat(dom.floorPremiumInput.value),
+        excludeCommercial: state.excludeCommercial, // 【新增此行】
+    };
 }
