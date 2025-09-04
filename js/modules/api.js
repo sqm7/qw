@@ -1,133 +1,102 @@
-// js/modules/api.js
+// supabase_project/js/modules/api.js
 
-import { supabase, API_ENDPOINTS } from './config.js';
+import { supabase } from '../supabase-client.js';
 
-// 內部輔助函數：獲取認證標頭
-async function getAuthHeaders() {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error || !session) {
-        console.error('無法獲取 Session，將跳轉回登入頁面');
-        window.location.href = 'login.html';
-        return null;
-    }
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-    };
-}
-
-// 導出(export)的函式，供 app.js 使用
-
-export async function checkAuth() {
+/**
+ * 通用的 Supabase Function 呼叫器
+ * @param {string} functionName - 要呼叫的 Function 名稱
+ * @param {object} body - 要傳遞的請求內容
+ * @returns {Promise<any>} - 回傳的資料
+ */
+async function invokeSupabaseFunction(functionName, body) {
+    // 檢查是否有可用的 session，並相應地設定 Authorization header
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-        window.location.href = 'login.html';
+    const headers = {
+        'Content-Type': 'application/json',
+    };
+    if (session) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
     }
-}
 
-{/* */}
-export async function getUser() {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
-}
+    const { data, error } = await supabase.functions.invoke(functionName, {
+        body: JSON.stringify(body),
+        headers: headers // 確保 headers 被傳遞
+    });
 
-export async function signOut() {
-    const { error } = await supabase.auth.signOut();
     if (error) {
-        console.error('登出失敗:', error);
-        throw error;
+        console.error(`Error invoking ${functionName}:`, error);
+        // 根據錯誤類型提供更具體的錯誤訊息
+        if (error.context?.msg) {
+             throw new Error(`Function Error: ${error.context.msg}`);
+        }
+        if (error instanceof TypeError) { // e.g., Network error
+            throw new Error("無法連接到伺服器，請檢查您的網路連線。");
+        }
+        throw new Error(`執行 ${functionName} 失敗: ${error.message}`);
     }
-}
-{/* */}
-
-
-export async function fetchData(filters, pagination) {
-    const headers = await getAuthHeaders();
-    if (!headers) throw new Error("認證失敗");
-
-    const response = await fetch(API_ENDPOINTS.QUERY_DATA, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify({ filters, pagination })
-    });
-
-    if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: '無法解析伺服器回應' }));
-        throw new Error(err.error);
-    }
-    return response.json();
-}
-
-export async function analyzeData(filters) {
-    const headers = await getAuthHeaders();
-    if (!headers) throw new Error("認證失敗");
-
-    const response = await fetch(API_ENDPOINTS.RANKING_ANALYSIS, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify({ filters })
-    });
-
-    if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: `分析請求失敗: ${response.status}` }));
-        throw new Error(err.error);
-    }
-    return response.json();
-}
-
-export async function fetchSubData(id, type, county) {
-    if (!id || !type || !county || county === 'undefined') {
-        throw new Error(`前端參數不足，無法查詢附表。(縣市代碼: ${county})`);
-    }
-    const headers = await getAuthHeaders();
-    if (!headers) throw new Error("認證失敗，請重新登入。");
-
-    const response = await fetch(API_ENDPOINTS.SUB_DATA, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify({ id, type, county })
-    });
-
-    if (!response.ok) {
-        const errorResult = await response.json().catch(() => ({ error: '無法從伺服器獲取附表資料' }));
-        throw new Error(errorResult.error);
-    }
-    return response.json();
-}
-
-export async function fetchProjectNameSuggestions(countyCode, query, districts) {
-    const headers = await getAuthHeaders();
-    if (!headers) throw new Error("認證標頭獲取失敗");
-
-    const payload = { countyCode, query, districts };
-    const response = await fetch(API_ENDPOINTS.PROJECT_NAMES, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) throw new Error(`伺服器錯誤: ${response.status}`);
-    return response.json();
-}
-
-
-export async function generateShareLink(payload) {
-    const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
-    if (refreshError) throw new Error(`認證刷新失敗: ${refreshError.message}`);
-    if (!session) throw new Error('認證刷新後無法取得 Session，請重新登入');
     
-    const headers = await getAuthHeaders();
-    if (!headers) throw new Error("認證失敗，無法取得認證標頭");
-
-    const response = await fetch(API_ENDPOINTS.GENERATE_SHARE_LINK, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: '產生分享連結失敗，伺服器未提供詳細資訊' }));
-        throw new Error(err.error);
+    // 如果回傳的 data 是字串，嘗試解析為 JSON
+    if (typeof data === 'string') {
+        try {
+            return JSON.parse(data);
+        } catch (e) {
+             // 如果不是合法的 JSON 字串，直接回傳
+            console.warn("Function returned a non-JSON string:", data);
+            return data;
+        }
     }
-    return response.json();
+    
+    return data;
+}
+
+
+export async function fetchCountyNames() {
+    return invokeSupabaseFunction('query-names', { type: 'counties' });
+}
+
+export async function fetchDistrictNames(county) {
+    if (!county) throw new Error("County is required to fetch districts.");
+    return invokeSupabaseFunction('query-names', { type: 'districts', county });
+}
+
+export async function fetchProjectNames(county, districts) {
+    if (!county) throw new Error("County is required to fetch project names.");
+    return invokeSupabaseFunction('query-names', { type: 'projects', county, districts });
+}
+
+export async function queryData(filters, page, pageSize) {
+    return invokeSupabaseFunction('query-data', { ...filters, page, pageSize });
+}
+
+// ▼▼▼ 【修改處】新增 residentialOnly 參數 ▼▼▼
+export async function analyzeData({ county, districts, buildingTypes, projectNames, dateStart, dateEnd, residentialOnly }) {
+    if (!county || !dateStart || !dateEnd) {
+        throw new Error('分析時缺少必要參數 (縣市、開始日期、結束日期)');
+    }
+    return invokeSupabaseFunction('analyze-data', {
+        county,
+        districts: districts || [],
+        buildingTypes: buildingTypes || [],
+        projectNames: projectNames || [],
+        dateStart,
+        dateEnd,
+        residentialOnly // 將參數傳遞給後端
+    });
+}
+// ▲▲▲ 【修改結束】 ▲▲▲
+
+
+export async function fetchSubTableData(mainTableId) {
+    if (!mainTableId) throw new Error("Main table ID is required.");
+    return invokeSupabaseFunction('query-sub-data', { mainTableId });
+}
+
+
+export async function generateShareLink(state) {
+    return invokeSupabaseFunction('generate-share-link', { state });
+}
+
+export async function getPublicReport(reportId) {
+    if (!reportId) throw new Error("Report ID is required.");
+    return invokeSupabaseFunction('public-report', { reportId });
 }
