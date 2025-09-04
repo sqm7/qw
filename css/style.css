@@ -26,23 +26,9 @@ body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background: var(--color
 .form-input:focus, .form-select:focus, .form-input:has(input:focus), .form-multiselect:focus-within { border-color: var(--color-cyan-accent); box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.5); outline: none; }
 select:disabled, input:disabled, .form-multiselect.disabled { background-color: var(--color-disabled-bg); cursor: not-allowed; opacity: 0.7; }
 .table-container { overflow-y: auto; }
-
-/* ▼▼▼ 【修改處】重構表格樣式，移除 table { border-collapse: collapse; } 以適應 border-spacing ▼▼▼ */
-table {
-    width: 100%;
-    border-collapse: separate; /* 關鍵修改 */
-    border-spacing: 0;
-}
-th, td {
-    border-bottom: 1px solid var(--color-disabled-bg);
-    padding: 0.75rem 1rem;
-    text-align: left;
-    font-size: 0.875rem;
-    white-space: nowrap;
-}
+table { width: 100%; border-collapse: collapse; }
+th, td { border-bottom: 1px solid var(--color-disabled-bg); padding: 0.75rem 1rem; text-align: left; font-size: 0.875rem; white-space: nowrap; }
 thead th { background-color: var(--color-dark-card); position: sticky; top: 0; z-index: 10; font-weight: 600; color: var(--color-text-dark); }
-/* ▲▲▲ 【修改結束】 ▲▲▲ */
-
 .loader { border: 4px solid var(--color-disabled-bg); border-top: 4px solid var(--color-cyan-accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
 .loader-sm { border: 2px solid var(--color-disabled-bg); border-top: 2px solid var(--color-cyan-accent); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -117,7 +103,7 @@ thead th { background-color: var(--color-dark-card); position: sticky; top: 0; z
 .btn-loading { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
 .heatmap-cell { transition: opacity 0.3s ease; }
 .heatmap-cell.dimmed { opacity: 0.15; }
-.legend-item { display: inline-flex; align-items: center; padding: 0.25rem 0.75rem; border-radius: 9999px; border: 1px solid var(--color-border-default); cursor: pointer; user-select: none; }
+.legend-item { display: inline-flex; align-items: center; padding: 0.25rem 0.75rem; border-radius: 9999px; border: 1px solid var(--color-border-default); cursor: pointer; transition: all 0.2s ease; user-select: none; }
 .legend-item.active, .legend-item:hover { background-color: var(--color-cyan-accent); border-color: var(--color-cyan-accent); color: white; }
 .legend-item .icon-legend-symbol { width: 1.5rem; text-align: center; margin-right: 0.5rem; }
 .legend-item .color-legend-swatch { width: 1rem; height: 1rem; border-radius: 0.25rem; margin-right: 0.5rem; border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; }
@@ -194,35 +180,28 @@ thead th { background-color: var(--color-dark-card); position: sticky; top: 0; z
 }
 
 /* 去化分析表格美化 */
-/* ▼▼▼ 【修改處】將銷控表與去化表樣式統一化，以避免跨瀏覽器問題 ▼▼▼ */
-.velocity-table, .price-grid-table {
+.velocity-table {
     border-collapse: separate;
-    border-spacing: 1px;
+    border-spacing: 0;
     border: 1px solid var(--color-disabled-bg);
     border-radius: 0.75rem;
     overflow: hidden;
 }
-/* 移除表格內部的 td/th 邊線，改用 border-spacing 產生的間距 */
-.velocity-table th, .velocity-table td,
-.price-grid-table th, .price-grid-table td {
-    border: none;
+.velocity-table th, .velocity-table td {
     padding: 0.75rem 1rem;
-    text-align: center;
-    background-color: var(--color-dark-card);
+    text-align: center; /* 讓數據居中對齊 */
 }
-.velocity-table thead, .price-grid-table thead {
+.velocity-table thead {
     background-color: var(--color-form-bg);
 }
-.velocity-table .velocity-header-group th,
-.price-grid-table thead tr:first-child th {
+.velocity-table .velocity-header-group th {
     padding-top: 0.75rem;
     padding-bottom: 0.5rem;
     font-size: 1rem;
     color: var(--color-text-light);
-    border-bottom: 1px solid var(--color-disabled-bg);
+    border-bottom: 1px solid var(--color-disabled-bg); /* 將原本跳色的線改為一致的灰色 */
 }
-.velocity-table .velocity-header-sub th,
-.price-grid-table thead tr:last-child th {
+.velocity-table .velocity-header-sub th {
     padding-top: 0.5rem;
     padding-bottom: 0.75rem;
     font-size: 0.75rem;
@@ -230,47 +209,44 @@ thead th { background-color: var(--color-dark-card); position: sticky; top: 0; z
     color: var(--color-text-dark);
     background-color: var(--color-dark-card);
 }
-.velocity-table tbody tr, .price-grid-table tbody tr {
+.velocity-table tbody tr {
     transition: background-color 0.2s ease;
 }
-.velocity-table tbody tr:hover, .price-grid-table tbody tr:hover {
+.velocity-table tbody tr:hover {
     background-color: var(--color-dark-card);
 }
-.velocity-table .total-col {
-    font-weight: 600;
-}
-.velocity-table .sticky, .price-grid-table .sticky {
-    position: sticky;
-    left: 0;
-    z-index: 10;
-    background-color: var(--color-dark-card);
-    border-right: 1px solid var(--color-disabled-bg);
-}
-/* 針對銷控表獨有的樣式 */
-.price-grid-table th, .price-grid-table td {
-    padding: 4px 8px; /* 縮小單元格間距 */
-    text-align: center;
-    vertical-align: top;
-}
-.price-grid-table thead th:first-child,
-.price-grid-table tbody td:first-child {
-    background-color: var(--color-form-bg);
-}
-.price-grid-table thead tr:last-child th {
-    border-bottom: 1px solid var(--color-disabled-bg);
-}
-.price-grid-table tbody tr td {
+.velocity-table td {
     border-top: 1px solid var(--color-disabled-bg);
 }
-/* ▲▲▲ 【修改結束】 ▲▲▲ */
-
-
+.velocity-table .total-col {
+    /* 移除特殊的背景色和文字顏色，讓它與其他欄位一致 */
+    /* background-color: rgba(6, 182, 212, 0.1); */
+    font-weight: 600; /* 保留加粗以示強調 */
+    /* color: #67e8f9; */
+}
+.velocity-table .sticky {
+    position: sticky;
+    z-index: 10;
+}
+.velocity-table .sticky.left-0 {
+    left: 0;
+}
+.velocity-table .velocity-header-group > th:not(:first-child),
+.velocity-table .velocity-header-sub > th:not(:first-child),
+.velocity-table tbody td:not(:first-child) {
+    border-left: 1px solid var(--color-disabled-bg);
+}
+/* ▼▼▼ 新增修正 ▼▼▼ */
+/* 補上「時間」欄位右側被遺漏的垂直分隔線 */
+.velocity-table .sticky {
+    border-right: 1px solid var(--color-disabled-bg);
+}
 .apexcharts-yaxis-label-right-align {
     text-anchor: end;
 }
 
 .glass-card-deep {
-    background-color: rgba(17, 24, 39, 0.6);
+    background-color: rgba(17, 24, 39, 0.6); /* A slightly deeper, less transparent background */
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
