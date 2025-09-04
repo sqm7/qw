@@ -21,22 +21,21 @@ export const state = {
     currentAverageType: 'arithmetic',
     
     // Price Band Report State
-    selectedPriceBandRoomTypes: [], // 總價帶分析的房型篩選
+    selectedPriceBandRoomTypes: [],
 
     // Velocity Report State
     selectedVelocityRooms: [],
     currentVelocityView: 'monthly',
-    lastHeatmapDetails: null, // 用於儲存熱力圖點擊的數據
-    currentHeatmapDetailMetric: 'median', // 熱力圖詳細數據的預設統計類型
+    lastHeatmapDetails: null, 
+    currentHeatmapDetailMetric: 'median',
 
     // Price Grid Report State
     selectedPriceGridProject: null,
     isHeatmapActive: false,
     currentLegendFilter: { type: null, value: null },
 
-    // ▼▼▼ 【新增處 1】 ▼▼▼
-    excludeCommercial: false, // 是否排除店面/事務所
-    // ▲▲▲ 【新增結束】 ▲▲▲
+    // 新增的功能狀態
+    excludeCommercial: false,
 };
 
 export function getFilters() {
@@ -52,8 +51,6 @@ export function getFilters() {
         dateEnd: dom.dateEndInput.value,
         projectNames: state.selectedProjects,
         floorPremium: parseFloat(dom.floorPremiumInput.value),
-        // ▼▼▼ 【新增處 2】 ▼▼▼
         excludeCommercial: state.excludeCommercial,
-        // ▲▲▲ 【新增結束】 ▲▲▲
     };
 }
