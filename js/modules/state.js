@@ -39,7 +39,7 @@ export const state = {
 };
 
 export function getFilters() {
-    // 【關鍵修正】: 遵從您原始的架構，從 window 物件讀取 dom
+    // 【關鍵修正】: 遵從您原始的架3構，從 window 物件讀取 dom
     const dom = window.dom; 
     
     return {
