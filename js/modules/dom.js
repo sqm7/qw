@@ -1,55 +1,112 @@
-// js/modules/state.js
+// js/modules/dom.js
 
-export const state = {
-    // Data and Pagination
-    currentPage: 1,
-    pageSize: 50,
-    totalRecords: 0,
-    
-    // Filters
-    selectedDistricts: [],
-    selectedProjects: [],
-    
-    // UI State
-    suggestionDebounceTimer: null,
-    
-    // Analysis & Reports
-    analysisDataCache: null,
-    currentSort: { key: 'saleAmountSum', order: 'desc' },
-    rankingCurrentPage: 1,
-    rankingPageSize: 10,
-    currentAverageType: 'arithmetic',
-    
-    // Price Band Report State
-    selectedPriceBandRoomTypes: [], // 總價帶分析的房型篩選
+export const dom = {
+    // 篩選器
+    filterCard: document.getElementById('filter-card'),
+    countySelect: document.getElementById('county'),
+    typeSelect: document.getElementById('type'),
+    buildingTypeSelect: document.getElementById('building-type'),
+    dateStartInput: document.getElementById('date-start'),
+    dateEndInput: document.getElementById('date-end'),
+    dateRangeSelect: document.getElementById('date-range'),
+    setTodayBtn: document.getElementById('set-today-btn'),
+    floorPremiumInput: document.getElementById('floor-premium-input'),
 
-    // Velocity Report State
-    selectedVelocityRooms: [],
-    currentVelocityView: 'monthly',
-    lastHeatmapDetails: null, // 用於儲存熱力圖點擊的數據
-    currentHeatmapDetailMetric: 'median', // 熱力圖詳細數據的預設統計類型
+    // 行政區篩選器
+    districtFilterWrapper: document.getElementById('district-filter-wrapper'),
+    districtContainer: document.getElementById('district-container'),
+    districtInputArea: document.getElementById('district-input-area'),
+    districtSuggestions: document.getElementById('district-suggestions'),
 
-    // Price Grid Report State
-    selectedPriceGridProject: null,
-    isHeatmapActive: false,
-    currentLegendFilter: { type: null, value: null },
+    // 建案名稱篩選器
+    projectFilterWrapper: document.getElementById('project-filter-wrapper'),
+    projectNameContainer: document.getElementById('project-name-container'),
+    projectNameInput: document.getElementById('project-name-input'),
+    projectNameSuggestions: document.getElementById('project-name-suggestions'),
 
-    // ▼▼▼ 【新增處】 ▼▼▼
-    excludeCommercial: false, // 是否排除店面/事務所
-    // ▲▲▲ 【新增結束】 ▲▲▲
+    // 按鈕
+    searchBtn: document.getElementById('search-btn'),
+    analyzeBtn: document.getElementById('analyze-btn'),
+    analyzeHeatmapBtn: document.getElementById('analyze-heatmap-btn'),
+    backToGridBtn: document.getElementById('back-to-grid-btn'),
+
+    // 主要容器
+    resultsContainer: document.getElementById('results-container'),
+    messageArea: document.getElementById('message-area'),
+    tabsContainer: document.getElementById('tabs-container'),
+    
+    // 資料列表
+    dataListContent: document.getElementById('data-list-content'),
+    tableContainer: document.getElementById('table-container'),
+    resultsTable: document.getElementById('results-table'),
+    paginationControls: document.getElementById('pagination-controls'),
+
+    // 報表 - 核心指標
+    rankingReportContent: document.getElementById('ranking-report-content'),
+    metricCardsContainer: document.getElementById('metric-cards-container'),
+    rankingTable: document.getElementById('ranking-table'),
+    rankingTableBody: document.querySelector('#ranking-table tbody'),
+    rankingPagination: document.getElementById('ranking-pagination'),
+    rankingChartContainer: document.getElementById('ranking-chart-container'),
+    excludeCommercialToggle: document.getElementById('exclude-commercial-toggle'), // 【新增此行】
+
+    // 報表 - 總價帶
+    priceBandReportContent: document.getElementById('price-band-report-content'),
+    priceBandRoomFilterContainer: document.getElementById('price-band-room-filter-container'),
+    priceBandChart: document.getElementById('price-band-chart'),
+    priceBandTable: document.getElementById('price-band-table'),
+    
+    // 報表 - 單價分析
+    unitPriceReportContent: document.getElementById('unit-price-report-content'),
+    avgTypeToggle: document.getElementById('avg-type-toggle'),
+    residentialStatsTableContainer: document.getElementById('residential-stats-table-container'),
+    officeStatsTableContainer: document.getElementById('office-stats-table-container'),
+    storeStatsTableContainer: document.getElementById('store-stats-table-container'),
+    residentialStatsExtraInfo: document.getElementById('residential-stats-extra-info'),
+    officeStatsExtraInfo: document.getElementById('office-stats-extra-info'),
+    storeStatsExtraInfo: document.getElementById('store-stats-extra-info'),
+    typeComparisonTableContainer: document.getElementById('type-comparison-table-container'),
+    averageTypeExplanation: document.getElementById('average-type-explanation'),
+
+    // 報表 - 車位分析
+    parkingReportContent: document.getElementById('parking-report-content'),
+    parkingRatioTableContainer: document.getElementById('parking-ratio-table-container'),
+    avgPriceByTypeTableContainer: document.getElementById('avg-price-by-type-table-container'),
+    rampPlanePriceByFloorTableContainer: document.getElementById('ramp-plane-price-by-floor-table-container'),
+    
+    // 報表 - 去化分析
+    velocityReportContent: document.getElementById('velocity-report-content'),
+    velocityRoomFilterContainer: document.getElementById('velocity-room-filter-container'),
+    velocitySubTabsContainer: document.getElementById('velocity-sub-tabs-container'),
+    salesVelocityChart: document.getElementById('sales-velocity-chart'),
+    velocityTableContainer: document.getElementById('velocity-table-container'),
+    areaHeatmapChart: document.getElementById('area-heatmap-chart'),
+    heatmapDetailsContainer: document.getElementById('heatmap-details-container'),
+    heatmapDetailsControls: document.getElementById('heatmap-details-controls'),
+    heatmapMetricToggle: document.getElementById('heatmap-metric-toggle'),
+    heatmapDetailsContent: document.getElementById('heatmap-details-content'),
+
+    // 報表 - 垂直水平分析
+    priceGridReportContent: document.getElementById('price-grid-report-content'),
+    priceGridProjectFilterContainer: document.getElementById('price-grid-project-filter-container'),
+    horizontalPriceGridContainer: document.getElementById('horizontal-price-grid-container'),
+    unitColorLegendContainer: document.getElementById('unit-color-legend-container'),
+    heatmapInfoContainer: document.getElementById('heatmap-info-container'),
+    heatmapLegendContainer: document.getElementById('heatmap-legend-container'),
+    heatmapSummaryTableContainer: document.getElementById('heatmap-summary-table-container'),
+    heatmapHorizontalComparisonTableContainer: document.getElementById('heatmap-horizontal-comparison-table-container'),
+    sharePriceGridBtn: document.getElementById('share-price-grid-btn'),
+
+    // 彈出視窗 (Modal)
+    modal: document.getElementById('details-modal'),
+    modalTitle: document.getElementById('modal-title'),
+    modalContent: document.getElementById('modal-content'),
+    modalCloseBtn: document.getElementById('modal-close-btn'),
+    
+    // 分享彈出視窗
+    shareModal: document.getElementById('share-modal'),
+    shareUrlInput: document.getElementById('share-url-input'),
+    copyShareUrlBtn: document.getElementById('copy-share-url-btn'),
+    copyFeedback: document.getElementById('copy-feedback'),
+    shareModalCloseBtn: document.getElementById('share-modal-close-btn'),
 };
-
-export function getFilters() {
-    const dom = window.dom; // Accessing global dom object
-    return {
-        county: dom.countySelect.value,
-        districts: state.selectedDistricts,
-        type: dom.typeSelect.value,
-        buildingType: dom.buildingTypeSelect.value,
-        dateStart: dom.dateStartInput.value,
-        dateEnd: dom.dateEndInput.value,
-        projectNames: state.selectedProjects,
-        floorPremium: parseFloat(dom.floorPremiumInput.value),
-        excludeCommercial: state.excludeCommercial, // 【新增此行】
-    };
-}
