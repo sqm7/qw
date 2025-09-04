@@ -61,6 +61,7 @@ async function setupUserStatus() {
 }
 
 function initializeApp() {
+    // 【關鍵】: 恢復您原始的 window 物件掛載
     window.dom = dom;
     window.state = state;
 
