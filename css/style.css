@@ -244,3 +244,13 @@ thead th { background-color: var(--color-dark-card); position: sticky; top: 0; z
 .apexcharts-yaxis-label-right-align {
     text-anchor: end;
 }
+
+.glass-card-deep {
+    background-color: rgba(17, 24, 39, 0.6); /* A slightly deeper, less transparent background */
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.report-section-title.text-center {
+    text-align: center;
+}
