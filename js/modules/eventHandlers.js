@@ -71,7 +71,6 @@ export async function mainAnalyzeData() {
     }
 }
 
-// ▼▼▼ 【這裡是新增的函式】 ▼▼▼
 /**
  * 處理「排除商辦店面」開關的變更事件
  */
@@ -85,7 +84,6 @@ export function handleExcludeCommercialToggle() {
         mainAnalyzeData();
     }
 }
-// ▲▲▲ 【新增結束】 ▲▲▲
 
 export async function mainShowSubTableDetails(btn) {
     const { id, type, county } = btn.dataset;
