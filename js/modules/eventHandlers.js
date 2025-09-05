@@ -1,4 +1,4 @@
-// js/modules/eventHandlers.js (修正版)
+// js/modules/eventHandlers.js
 
 import { state, getFilters } from './state.js';
 import { dom } from './dom.js';
@@ -70,6 +70,22 @@ export async function mainAnalyzeData() {
         state.analysisDataCache = null;
     }
 }
+
+// ▼▼▼ 【這裡是新增的函式】 ▼▼▼
+/**
+ * 處理「排除商辦店面」開關的變更事件
+ */
+export function handleExcludeCommercialToggle() {
+    // 1. 從 DOM 讀取開關狀態，並更新 state
+    state.excludeCommercialInRanking = dom.excludeCommercialToggle.checked;
+
+    // 2. 檢查是否已經有分析資料。如果有，就重新觸發分析
+    if (state.analysisDataCache) {
+        // 重新呼叫主分析函式，它會使用 getFilters() 獲取包含最新開關狀態的篩選條件
+        mainAnalyzeData();
+    }
+}
+// ▲▲▲ 【新增結束】 ▲▲▲
 
 export async function mainShowSubTableDetails(btn) {
     const { id, type, county } = btn.dataset;
@@ -261,7 +277,6 @@ export function switchAverageType(type) {
     if (state.analysisDataCache) { reportRenderer.renderUnitPriceReport(); }
 }
 
-// ▼▼▼ 【修改處】 ▼▼▼
 export function handlePriceBandRoomFilterClick(e) {
     const button = e.target.closest('.capsule-btn');
     if (!button) return;
@@ -270,7 +285,6 @@ export function handlePriceBandRoomFilterClick(e) {
 
     button.classList.toggle('active');
     
-    // 更新 state
     if (button.classList.contains('active')) {
         if (!state.selectedPriceBandRoomTypes.includes(roomType)) {
             state.selectedPriceBandRoomTypes.push(roomType);
@@ -279,11 +293,8 @@ export function handlePriceBandRoomFilterClick(e) {
         state.selectedPriceBandRoomTypes = state.selectedPriceBandRoomTypes.filter(r => r !== roomType);
     }
     
-    // 【核心修改】呼叫主渲染函式來更新整個區塊 (表格 + 圖表)
-    // 這會使其行為與 '房型去化分析' 的篩選器一致
     reportRenderer.renderPriceBandReport();
 }
-// ▲▲▲ 【修改結束】 ▲▲▲
 
 export function handleVelocityRoomFilterClick(e) {
     const button = e.target.closest('.capsule-btn'); if (!button) return;
@@ -312,7 +323,6 @@ export function handleVelocitySubTabClick(e) {
     chartRenderer.renderAreaHeatmap();
 }
 
-// ▼▼▼ 【新增處】處理熱力圖詳細數據的統計類型切換 ▼▼▼
 export function handleHeatmapMetricToggle(e) {
     const button = e.target.closest('.avg-type-btn');
     if (!button || button.classList.contains('active')) return;
@@ -323,12 +333,10 @@ export function handleHeatmapMetricToggle(e) {
     dom.heatmapMetricToggle.querySelector('.active').classList.remove('active');
     button.classList.add('active');
 
-    // 重新渲染表格
     if (state.lastHeatmapDetails) {
         tableRenderer.renderHeatmapDetailsTable();
     }
 }
-// ▲▲▲ 【新增結束】 ▲▲▲
 
 export function handlePriceGridProjectFilterClick(e) {
     const button = e.target.closest('.capsule-btn');
