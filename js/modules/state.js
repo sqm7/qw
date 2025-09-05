@@ -23,11 +23,9 @@ export const state = {
     isHeatmapActive: false,
     currentLegendFilter: { type: null, value: null },
     areaHeatmapChart: null,
-    lastHeatmapDetails: null, // 儲存上次點擊熱力圖的詳細數據
-    currentHeatmapDetailMetric: 'median', // 預設顯示中位數
-    // ▼▼▼ 【新增處】 ▼▼▼
+    lastHeatmapDetails: null, 
+    currentHeatmapDetailMetric: 'median',
     excludeCommercialInRanking: false, // 核心指標與排名報告中，是否排除商辦店面的開關狀態
-    // ▲▲▲ 【新增結束】 ▲▲▲
 };
 
 // 根據當前狀態獲取篩選條件
@@ -41,10 +39,8 @@ export function getFilters() {
     if (dom.buildingTypeSelect.value) filters.buildingType = dom.buildingTypeSelect.value;
     if (state.selectedProjects.length > 0) filters.projectNames = state.selectedProjects;
     
-    // ▼▼▼ 【新增處】 ▼▼▼
     // 將開關的狀態加入到篩選條件中
     filters.excludeCommercial = state.excludeCommercialInRanking;
-    // ▲▲▲ 【新增結束】 ▲▲▲
     
     return filters;
 }
