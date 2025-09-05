@@ -30,10 +30,8 @@ import {
     handleBackToGrid,
     handleLegendClick,
     handleShareClick,
-    // ▼▼▼ 【修改處 1/4】 修正函式名稱，並導入新函式 ▼▼▼
-    copyShareUrl, // <--- 這裡從 copyUrl 修正為 copyShareUrl
+    copyShareUrl,
     handleExcludeCommercialToggle,
-    // ▲▲▲ 【修改結束】 ▲▲▲
 } from './modules/eventHandlers.js';
 import { state } from './modules/state.js';
 
@@ -152,9 +150,7 @@ function initialize() {
         if (e.target.matches('.avg-type-btn')) switchAverageType(e.target.dataset.type); 
     });
     
-    // ▼▼▼ 【修改處 2/4】 綁定新開關的事件監聽器 ▼▼▼
     dom.excludeCommercialToggle.addEventListener('change', handleExcludeCommercialToggle);
-    // ▲▲▲ 【修改結束】 ▲▲▲
     
     // --- 去化分析與垂直水平分析相關事件 ---
     dom.priceBandRoomFilterContainer.addEventListener('click', handlePriceBandRoomFilterClick);
@@ -165,9 +161,7 @@ function initialize() {
     dom.backToGridBtn.addEventListener('click', handleBackToGrid);
     dom.heatmapLegendContainer.addEventListener('click', handleLegendClick);
     
-    // ▼▼▼ 【修改處 3/4】 這是您原本就有的程式碼，我將它保留 ▼▼▼
     dom.heatmapMetricToggle.addEventListener('click', handleHeatmapMetricToggle);
-    // ▲▲▲ 【修改結束】 ▲▲▲
 
     // 熱力圖面積級距控制
     dom.heatmapIntervalInput.addEventListener('change', chartRenderer.renderAreaHeatmap);
@@ -195,9 +189,7 @@ function initialize() {
     // --- 分享功能 ---
     dom.sharePriceGridBtn.addEventListener('click', () => handleShareClick('price_grid'));
     dom.shareModalCloseBtn.addEventListener('click', () => dom.shareModal.classList.add('hidden'));
-    // ▼▼▼ 【修改處 4/4】 確保呼叫的函式名稱與 import 的一致 ▼▼▼
     dom.copyShareUrlBtn.addEventListener('click', copyShareUrl);
-    // ▲▲▲ 【修改結束】 ▲▲▲
 
     // --- 處理分頁變更的自訂事件 ---
     document.addEventListener('pageChange', (e) => {
