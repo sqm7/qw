@@ -24,13 +24,16 @@ import {
     handlePriceBandRoomFilterClick,
     handleVelocityRoomFilterClick,
     handleVelocitySubTabClick,
-    handleHeatmapMetricToggle, // 引入新的事件處理函式
+    handleHeatmapMetricToggle,
     handlePriceGridProjectFilterClick,
     analyzeHeatmap,
     handleBackToGrid,
     handleLegendClick,
     handleShareClick,
-    copyShareUrl
+    copyUrl,
+    // ▼▼▼ 【修改處 1/3】 導入新的事件處理函式 ▼▼▼
+    handleExcludeCommercialToggle,
+    // ▲▲▲ 【修改結束】 ▲▲▲
 } from './modules/eventHandlers.js';
 import { state } from './modules/state.js';
 
@@ -38,7 +41,7 @@ import { state } from './modules/state.js';
 import * as reportRenderer from './modules/renderers/reports.js';
 import * as chartRenderer from './modules/renderers/charts.js';
 
-{/* */}
+
 async function setupUserStatus() {
     try {
         const user = await api.getUser();
@@ -61,16 +64,14 @@ async function setupUserStatus() {
         console.error('無法設定使用者狀態:', error);
     }
 }
-{/* */}
+
 
 function initialize() {
     api.checkAuth().catch(err => {
         console.error("認證檢查失敗:", err);
     });
 
-    {/* */}
-    setupUserStatus(); // 呼叫新的函式來設定右上角的 UI
-    {/* */}
+    setupUserStatus();
 
     try {
         const countyNames = Object.keys(districtData);
@@ -151,6 +152,10 @@ function initialize() {
         if (e.target.matches('.avg-type-btn')) switchAverageType(e.target.dataset.type); 
     });
     
+    // ▼▼▼ 【修改處 2/3】 綁定新開關的事件監聽器 ▼▼▼
+    dom.excludeCommercialToggle.addEventListener('change', handleExcludeCommercialToggle);
+    // ▲▲▲ 【修改結束】 ▲▲▲
+    
     // --- 去化分析與垂直水平分析相關事件 ---
     dom.priceBandRoomFilterContainer.addEventListener('click', handlePriceBandRoomFilterClick);
     dom.velocityRoomFilterContainer.addEventListener('click', handleVelocityRoomFilterClick);
@@ -160,9 +165,7 @@ function initialize() {
     dom.backToGridBtn.addEventListener('click', handleBackToGrid);
     dom.heatmapLegendContainer.addEventListener('click', handleLegendClick);
     
-    // ▼▼▼ 【新增處】綁定新的事件監聽器 ▼▼▼
     dom.heatmapMetricToggle.addEventListener('click', handleHeatmapMetricToggle);
-    // ▲▲▲ 【新增結束】 ▲▲▲
 
     // 熱力圖面積級距控制
     dom.heatmapIntervalInput.addEventListener('change', chartRenderer.renderAreaHeatmap);
@@ -190,7 +193,9 @@ function initialize() {
     // --- 分享功能 ---
     dom.sharePriceGridBtn.addEventListener('click', () => handleShareClick('price_grid'));
     dom.shareModalCloseBtn.addEventListener('click', () => dom.shareModal.classList.add('hidden'));
+    // ▼▼▼ 【修改處 3/3】 修正函式名稱 ▼▼▼
     dom.copyShareUrlBtn.addEventListener('click', copyShareUrl);
+    // ▲▲▲ 【修改結束】 ▲▲▲
 
     // --- 處理分頁變更的自訂事件 ---
     document.addEventListener('pageChange', (e) => {
