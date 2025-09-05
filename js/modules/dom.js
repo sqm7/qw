@@ -34,9 +34,8 @@ export const dom = {
     metricCardsContainer: document.getElementById('metric-cards-container'),
     rankingTable: document.getElementById('ranking-table'),
     rankingChartContainer: document.getElementById('ranking-chart-container'),
-    // ▼▼▼ 【這裡是新增的程式碼】 ▼▼▼
+    rankingPaginationControls: document.createElement('div'), // Pagination for ranking table
     excludeCommercialToggle: document.getElementById('exclude-commercial-toggle'),
-    // ▲▲▲ 【新增結束】 ▲▲▲
 
     // Price band report
     priceBandReportContent: document.getElementById('price-band-report-content'),
@@ -75,8 +74,8 @@ export const dom = {
     heatmapMinAreaInput: document.getElementById('heatmap-min-area-input'),
     heatmapMaxAreaInput: document.getElementById('heatmap-max-area-input'),
     heatmapIntervalInput: document.getElementById('heatmap-interval-input'),
-    heatmapIntervalDecrement: document.getElementById('heatmap-interval-decrement'),
-    heatmapIntervalIncrement: document.getElementById('heatmap-interval-increment'),
+    heatmapIntervalIncrementBtn: document.getElementById('heatmap-interval-increment'),
+    heatmapIntervalDecrementBtn: document.getElementById('heatmap-interval-decrement'),
     
     // Price grid report
     priceGridReportContent: document.getElementById('price-grid-report-content'),
