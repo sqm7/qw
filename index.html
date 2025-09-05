@@ -129,7 +129,16 @@
         <div id="message-area" class="text-center p-8 text-gray-400">請設定篩選條件後點擊查詢或分析。</div>
         
         <div id="ranking-report-content" class="tab-content">
-           <div id="metric-cards-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8"></div>
+           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-end mb-6">
+                <div class="flex items-center justify-end">
+                    <span class="text-sm font-medium text-gray-300 mr-3">排除商辦店面</span>
+                    <label for="exclude-commercial-toggle" class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="exclude-commercial-toggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+            </div>
+            <div id="metric-cards-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8"></div>
            <div id="ranking-chart-container" class="mb-8"></div>
            <div class="overflow-x-auto">
                 <table id="ranking-table" class="min-w-full divide-y divide-gray-800"></table>
